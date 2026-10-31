@@ -13,7 +13,7 @@ Lis ce fichier en entier avant de toucher au code.
 ## Où sont les choses
 - `public/app.js` : toute l'interface (vues, passage sur un compte, ajout d'un compte, admin).
 - `public/i18n.js` : TOUS les textes d'Emmy, `L[clé] = [thaï, anglais, français]`. Un texte d'Emmy ne s'écrit jamais en dur dans app.js.
-- `public/style.css` : design Threads HQ (noir et blanc, bleu d'action) + bloc « Threads Emmy » en bas.
+- `public/style.css` : base Threads HQ + bloc « Threads Emmy » + thème ROSE en bas (dégradé rose, demandé par Awen le 31/10). Garder le rose.
 - `lib/core.mjs` : logique serveur (routes `/api/*`), reprise de Threads HQ. Ajouts Emmy repérés par « Emmy » dans les commentaires.
 - `lib/seeds.mjs` : banques de départ (commentaires FR/EN, textes de posts FR/EN).
 - `netlify/functions/api.mjs` : branche le serveur sur Netlify (stockage Netlify Blobs, propre à ce site).
