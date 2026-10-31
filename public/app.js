@@ -1,6 +1,6 @@
 // Threads Emmy : CRM des comptes Threads achetés (warm-up 3 semaines). Aucune dépendance.
 // Interface d'Emmy en thaï parlé (boutons EN / FR). Pages admin (Awen) en français.
-import { L, LANGS } from "./i18n.js";
+import { L, LANGS, ADM } from "./i18n.js";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -34,6 +34,12 @@ function t(k, v = {}) {
   return s;
 }
 const tl = (k, v) => t(k, v).split("|");
+// pages admin : la phrase française sert de clé, traduite en thaï / anglais (ADM dans i18n.js)
+function A(fr, v = {}) {
+  let s = S.lang === "fr" ? fr : (ADM[fr] || [])[S.lang === "th" ? 0 : 1] || fr;
+  for (const [a, b] of Object.entries(v)) s = s.split(`{${a}}`).join(b);
+  return s;
+}
 const LANG_NAME = { fr: { th: "ฝรั่งเศส", en: "French", fr: "français" }, en: { th: "อังกฤษ", en: "English", fr: "anglais" } };
 const langName = (l) => (LANG_NAME[l] || {})[S.lang] || l;
 
@@ -408,12 +414,12 @@ function render() {
   ];
   if (isAdmin()) {
     const c = S.data.configured;
-    groups.push(["Admin", [
-      ["suivi", "Suivi", 0],
-      ["contenu", "Textes et photos", 0],
-      ["stock", "Comptes achetés", 0],
-      ["reglages", "Réglages", c.proxy && c.rotation && c.sms ? 0 : 1],
-      ["journal", "Journal", 0],
+    groups.push([A("Admin"), [
+      ["suivi", A("Suivi"), 0],
+      ["contenu", A("Textes et photos"), 0],
+      ["stock", A("Comptes achetés"), 0],
+      ["reglages", A("Réglages"), c.proxy && c.rotationOk && c.sms ? 0 : 1],
+      ["journal", A("Journal"), 0],
     ]]);
   }
   const all = groups.flatMap((g) => g[1]);
@@ -523,7 +529,7 @@ const VIEWS = {
       const fresh = freshIp();
       const used = fresh && S.data.accounts.find((a) => a.ip === fresh.ip);
       body = `${head("a1")}<p>${t("a1txt")}</p>
-        ${!S.data.configured.proxy || !S.data.configured.rotation ? `<div class="alert c-red">${t("a1noconf")}</div>` : ""}
+        ${!S.data.configured.proxy || !S.data.configured.rotationOk ? `<div class="alert c-red">${t("a1noconf")}</div>` : ""}
         ${fresh && !used ? `<div class="alert c-green">${t("a1fresh", { ip: esc(fresh.ip + " " + (fresh.country || "")) })}</div>` : used ? `<div class="alert c-red">${t("a1used", { p: esc(used.pseudo) })}</div>` : `<div class="alert c-yellow">${t("a1old")}</div>`}
         <button class="btn accent" data-act="rotate" data-wait="${t("changingIp")}">${icon("rotate")}${t("changeIp")}</button>
         ${nav(!!(fresh && !used))}`;
@@ -603,13 +609,10 @@ const VIEWS = {
       ${sec(t("g_rules"), tl("g_rulesSteps", { n: P.perDay }))}`;
   },
 
-  // ---------------- admin (français)
+  // ---------------- admin (Awen) : textes via A() (thaï / anglais / français)
   suivi() {
     const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.parse(S.data.today + "T00:00:00Z") - i * 864e5).toISOString().slice(0, 10);
-      days.push(d);
-    }
+    for (let i = 6; i >= 0; i--) days.push(new Date(Date.parse(S.data.today + "T00:00:00Z") - i * 864e5).toISOString().slice(0, 10));
     const accs = S.data.accounts.filter((a) => a.status !== "saute" || (a.acts || []).some((x) => days.includes(x.day)));
     const all = S.data.accounts.flatMap((a) => (a.acts || []).map((x) => ({ ...x, pseudo: a.pseudo })));
     const per = (d) => all.filter((x) => x.day === d).length;
@@ -618,103 +621,98 @@ const VIEWS = {
     const target = q.reduce((s, x) => s + x.plan.total, 0);
     const c = S.data.configured;
     const st = S.data.stock || {};
-    const miss = [!c.proxy && "proxy", !c.rotation && "lien de rotation", !c.sms && "site de numéros", !c.smsHero && "Hero SMS (e-mails)"].filter(Boolean);
-    const dead = S.data.accounts.filter((a) => a.status === "saute").length;
+    const miss = [!c.proxy && A("proxy"), !c.rotationOk && A("lien de rotation"), !c.sms && A("site de numéros"), !c.smsHero && A("Hero SMS (e-mails)")].filter(Boolean);
     const count = (s) => S.data.accounts.filter((a) => a.status === s).length;
-    return `<h2>Suivi</h2><p class="lead">Ce qu'Emmy a fait, compte par compte, sur 7 jours.</p>
-      ${miss.length ? `<div class="alert c-red">À brancher dans Réglages : ${esc(miss.join(", "))}. <button class="btn sm light" data-tab="reglages">Réglages</button></div>` : ""}
-      ${!(S.data.media || []).some((m) => m.group === "commentaires") ? `<div class="alert c-yellow">Aucune photo pour les commentaires (semaine 2). <button class="btn sm light" data-tab="contenu">Ajouter</button></div>` : ""}
-      ${!(S.data.users || []).some((u) => u.role === "va") ? `<div class="alert c-yellow">Emmy n'a pas encore d'accès. <button class="btn sm light" data-tab="reglages">Créer son code</button></div>` : ""}
+    return `<h2>${A("Suivi")}</h2><p class="lead">${A("Ce qu'Emmy a fait, compte par compte, sur 7 jours.")}</p>
+      ${miss.length ? `<div class="alert c-red">${esc(A("À brancher dans Réglages : {x}.", { x: miss.join(", ") }))} <button class="btn sm light" data-tab="reglages">${A("Réglages")}</button></div>` : ""}
+      ${!(S.data.media || []).some((m) => m.group === "commentaires") ? `<div class="alert c-yellow">${A("Aucune photo pour les commentaires (semaine 2).")} <button class="btn sm light" data-tab="contenu">${A("Ajouter")}</button></div>` : ""}
+      ${!(S.data.users || []).some((u) => u.role === "va") ? `<div class="alert c-yellow">${A("Emmy n'a pas encore d'accès.")} <button class="btn sm light" data-tab="reglages">${A("Créer son code")}</button></div>` : ""}
       <div class="stats">
-        <div class="stat"><b>${today.length}<small>/${target}</small></b><span>actions aujourd'hui</span></div>
-        <div class="stat"><b>${today.length ? hm(today[0].at) : "-"}</b><span>début</span></div>
-        <div class="stat"><b>${today.length ? hm(today[today.length - 1].at) : "-"}</b><span>dernière action</span></div>
-        <div class="stat"><b>${count("warmup") + count("actif")}</b><span><i class="dot c-green"></i>en warm-up</span></div>
-        <div class="stat"><b>${count("verif") + count("restreint")}</b><span><i class="dot c-yellow"></i>à régler</span></div>
-        <div class="stat"><b>${dead}</b><span><i class="dot c-red"></i>sautés</span></div>
-        <div class="stat"><b>${st.dispo || 0}</b><span>en stock</span></div>
+        <div class="stat"><b>${today.length}<small>/${target}</small></b><span>${A("actions aujourd'hui")}</span></div>
+        <div class="stat"><b>${today.length ? hm(today[0].at) : "-"}</b><span>${A("début")}</span></div>
+        <div class="stat"><b>${today.length ? hm(today[today.length - 1].at) : "-"}</b><span>${A("dernière action")}</span></div>
+        <div class="stat"><b>${count("warmup") + count("actif")}</b><span><i class="dot c-green"></i>${A("en warm-up")}</span></div>
+        <div class="stat"><b>${count("verif") + count("restreint")}</b><span><i class="dot c-yellow"></i>${A("à régler")}</span></div>
+        <div class="stat"><b>${count("saute")}</b><span><i class="dot c-red"></i>${A("sautés")}</span></div>
+        <div class="stat"><b>${st.dispo || 0}</b><span>${A("en stock")}</span></div>
       </div>
-      <div class="card" style="overflow-x:auto"><table class="plan"><thead><tr><th class="pa">Compte</th>${days.map((d) => `<th class="${d === S.data.today ? "td" : ""}"><b>${d.slice(8)}/${d.slice(5, 7)}</b></th>`).join("")}<th>Statut</th></tr></thead>
+      <div class="card" style="overflow-x:auto"><table class="plan"><thead><tr><th class="pa">${A("Compte")}</th>${days.map((d) => `<th class="${d === S.data.today ? "td" : ""}"><b>${d.slice(8)}/${d.slice(5, 7)}</b></th>`).join("")}<th>${A("Statut")}</th></tr></thead>
       <tbody>${accs.map((a) => `<tr><td class="pa"><b>@${esc(a.pseudo)}</b> ${langPill(a.lang)}<span class="muted">J${dayNum(a)} · ${esc(a.geelarkProfile || "")}</span></td>${days.map((d) => { const n = (a.acts || []).filter((x) => x.day === d).length; return `<td class="${n ? "" : "hole0"}">${n || ""}</td>`; }).join("")}<td>${pill(a.status)}</td></tr>`).join("")}
-      <tr><td class="pa"><b>Total</b></td>${days.map((d) => `<td><b>${per(d) || ""}</b></td>`).join("")}<td></td></tr></tbody></table></div>
-      <h3>Aujourd'hui, dans l'ordre</h3>
-      <div class="card list">${today.slice().reverse().slice(0, 60).map((x) => `<div class="task"><div class="task-text"><b>${hm(x.at)} · @${esc(x.pseudo)}</b><span>${esc(L["k_" + x.k][2])}${x.t ? " · " + esc(x.t) : ""}${x.m ? " · photo" : ""}</span></div></div>`).join("") || '<p class="muted" style="padding:16px">Rien pour l\'instant.</p>'}</div>`;
+      <tr><td class="pa"><b>${A("Total")}</b></td>${days.map((d) => `<td><b>${per(d) || ""}</b></td>`).join("")}<td></td></tr></tbody></table></div>
+      <h3>${A("Aujourd'hui, dans l'ordre")}</h3>
+      <div class="card list">${today.slice().reverse().slice(0, 60).map((x) => `<div class="task"><div class="task-text"><b>${hm(x.at)} · @${esc(x.pseudo)}</b><span>${esc(t("k_" + x.k))}${x.t ? " · " + esc(x.t) : ""}${x.m ? " · " + A("photo") : ""}</span></div></div>`).join("") || `<p class="muted" style="padding:16px">${A("Rien pour l'instant.")}</p>`}</div>`;
   },
 
   contenu() {
     const s = S.data.settings;
     const media = S.data.media || [];
-    const grid = (g) => `<div class="thumbs">${media.filter((m) => m.group === g).map((m) => `<figure><img src="${mediaUrl(m)}" alt="" loading="lazy" /><button class="btn sm light" data-act="mediaDel" data-id="${m.id}">Supprimer</button></figure>`).join("") || '<p class="muted">Aucune photo.</p>'}</div>`;
-    const area = (k, l, n) => `<label class="f">${l} <small>(${n} · une ligne = un texte)</small></label><textarea data-bank="${k}" rows="8">${esc((k.split(".").reduce((o, x) => o?.[x], s) || []).join("\n"))}</textarea>`;
-    return `<h2>Textes et photos</h2><p class="lead">Les commentaires et les posts qu'Emmy copie. Un compte ne reçoit jamais deux fois le même texte ni la même photo, et le CRM prend toujours le moins utilisé.</p>
-      <div class="card"><h3>Commentaires</h3>
-        ${area("comments.fr", "Français", (s.comments?.fr || []).length)}
-        ${area("comments.en", "Anglais", (s.comments?.en || []).length)}
-        <h3>Posts (semaine 3 et plus)</h3>
-        ${area("captions.fr", "Français", (s.captions?.fr || []).length)}
-        ${area("captions.en", "Anglais", (s.captions?.en || []).length)}
-        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveBanks" data-wait="Enregistrement...">Enregistrer les textes</button></div>
+    const grid = (g) => `<div class="thumbs">${media.filter((m) => m.group === g).map((m) => `<figure><img src="${mediaUrl(m)}" alt="" loading="lazy" /><button class="btn sm light" data-act="mediaDel" data-id="${m.id}">${A("Supprimer")}</button></figure>`).join("") || `<p class="muted">${A("Aucune photo.")}</p>`}</div>`;
+    const area = (k, l) => {
+      const list = k.split(".").reduce((o, x) => o?.[x], s) || [];
+      return `<label class="f">${l} <small>(${A("{n} · une ligne = un texte", { n: list.length })})</small></label><textarea data-bank="${k}" rows="8">${esc(list.join("\n"))}</textarea>`;
+    };
+    return `<h2>${A("Textes et photos")}</h2><p class="lead">${A("Les commentaires et les posts qu'Emmy copie. Un compte ne reçoit jamais deux fois le même texte ni la même photo, et le CRM prend toujours le moins utilisé.")}</p>
+      <div class="card"><h3>${A("Commentaires")}</h3>
+        ${area("comments.fr", A("Français"))}
+        ${area("comments.en", A("Anglais"))}
+        <h3>${A("Posts (semaine 3 et plus)")}</h3>
+        ${area("captions.fr", A("Français"))}
+        ${area("captions.en", A("Anglais"))}
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveBanks" data-wait="${t("wait")}">${A("Enregistrer les textes")}</button></div>
       </div>
-      <div class="card"><h3>Photos pour les commentaires (semaine 2 et plus)</h3>
+      <div class="card"><h3>${A("Photos pour les commentaires (semaine 2 et plus)")}</h3>
         <input type="file" accept="image/*" multiple data-upload="commentaires" />${grid("commentaires")}</div>
-      <div class="card"><h3>Photos pour les posts (semaine 3 et plus)</h3>
+      <div class="card"><h3>${A("Photos pour les posts (semaine 3 et plus)")}</h3>
         <input type="file" accept="image/*" multiple data-upload="posts" />${grid("posts")}</div>`;
   },
 
   stock() {
     const st = S.data.stock || {};
     const list = st.list || [];
-    const lbl = { dispo: "Dispo", pris: "En cours", utilise: "Utilisé", rate: "Raté" };
-    return `<h2>Comptes achetés</h2><p class="lead">Colle la liste reçue du vendeur (ou glisse le fichier .txt). Emmy les prend un par un dans « Ajouter un compte », tout se remplit seul.</p>
-      <div class="stats"><div class="stat"><b>${st.dispo || 0}</b><span><i class="dot c-green"></i>dispo</span></div><div class="stat"><b>${st.pris || 0}</b><span><i class="dot c-blue"></i>en cours</span></div><div class="stat"><b>${st.utilise || 0}</b><span>utilisés</span></div><div class="stat"><b>${st.rate || 0}</b><span><i class="dot c-red"></i>ratés</span></div></div>
-      <div class="card"><h3>Importer</h3>
-        <p class="muted">Une ligne par compte. Formats reconnus : <code>identifiant mdp CLE2FA</code>, <code>identifiant:mdp:email:mdpmail:CLE2FA</code>, <code>identifiant mdp email mdpmail</code>. Tab, espace, « : », « ; » ou « | ». Les lignes de pub sont ignorées, les doublons aussi.</p>
+    const lbl = { dispo: A("Dispo"), pris: A("En cours"), utilise: A("Utilisé"), rate: A("Raté") };
+    return `<h2>${A("Comptes achetés")}</h2><p class="lead">${A("Colle la liste reçue du vendeur (ou glisse le fichier .txt). Emmy les prend un par un dans « Ajouter un compte », tout se remplit seul.")}</p>
+      <div class="stats"><div class="stat"><b>${st.dispo || 0}</b><span><i class="dot c-green"></i>${A("dispo")}</span></div><div class="stat"><b>${st.pris || 0}</b><span><i class="dot c-blue"></i>${A("en cours")}</span></div><div class="stat"><b>${st.utilise || 0}</b><span>${A("utilisés")}</span></div><div class="stat"><b>${st.rate || 0}</b><span><i class="dot c-red"></i>${A("ratés")}</span></div></div>
+      <div class="card"><h3>${A("Importer")}</h3>
+        <p class="muted">${A("Une ligne par compte. Formats reconnus : identifiant mdp CLE2FA, identifiant:mdp:email:mdpmail:CLE2FA, identifiant mdp email mdpmail. Tab, espace, « : », « ; » ou « | ». Les lignes de pub sont ignorées, les doublons aussi.")}</p>
         <textarea data-stocktext rows="6" placeholder="julie.paris12	Mdp123!	julie@outlook.com	MailMdp	JBSW Y3DP EHPK 3PXP"></textarea>
         <input type="file" accept=".txt,.csv,text/plain" multiple data-stockfile style="margin-top:8px" />
-        <div class="row" style="margin-top:10px"><button class="btn" data-act="stockImport" data-wait="Import...">Importer</button></div></div>
-      ${list.length ? `<div class="card" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Identifiant</th><th>E-mail</th><th>2FA</th><th>Commande</th><th>Statut</th><th>Ajouté</th></tr></thead><tbody>${list.slice().reverse().map((x) => `<tr><td>${esc(x.user)}</td><td>${esc(x.email || "")}</td><td>${x.has2fa ? "oui" : ""}</td><td>${esc(x.order || "")}</td><td>${esc(lbl[x.status] || x.status)}${x.takenBy ? " · " + esc(x.takenBy) : ""}${x.reason ? `<br><small class="muted">${esc(x.reason)}</small>` : ""}</td><td>${fmt(x.addedAt)}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+        <div class="row" style="margin-top:10px"><button class="btn" data-act="stockImport" data-wait="${t("wait")}">${A("Importer")}</button></div></div>
+      ${list.length ? `<div class="card" style="overflow-x:auto"><table class="tbl"><thead><tr><th>${A("Identifiant")}</th><th>${A("E-mail")}</th><th>${A("2FA")}</th><th>${A("Commande")}</th><th>${A("Statut")}</th><th>${A("Ajouté")}</th></tr></thead><tbody>${list.slice().reverse().map((x) => `<tr><td>${esc(x.user)}</td><td>${esc(x.email || "")}</td><td>${x.has2fa ? A("oui") : ""}</td><td>${esc(x.order || "")}</td><td>${esc(lbl[x.status] || x.status)}${x.takenBy ? " · " + esc(x.takenBy) : ""}${x.reason ? `<br><small class="muted">${esc(x.reason)}</small>` : ""}</td><td>${fmt(x.addedAt)}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
   },
 
   reglages() {
     const s = S.data.settings;
     const c = S.data.configured;
     const P = prog();
-    const tag = (ok) => `<span class="tag ${ok ? "ok" : "miss"}">${ok ? "branché" : "à faire"}</span>`;
+    const tag = (ok) => `<span class="tag ${ok ? "ok" : "miss"}">${ok ? A("branché") : A("à faire")}</span>`;
     const p = parseProxy(s.proxy);
-    const fromHq = s.proxyFrom && s.proxyFrom.src === "hq" && p && p.host === s.proxyFrom.host && String(p.port) === String(s.proxyFrom.port) && (p.user || "") === (s.proxyFrom.user || "");
-    const pxSrc = !p ? "" : fromHq ? `<div class="alert c-yellow"><b>Même proxy que Sandra</b> (copié de Threads HQ le ${fmt(s.proxyFrom.at)}). Emmy et Sandra partagent les mêmes IP : quand l'une change l'IP, ça change pour l'autre. Mets le proxy d'Emmy ici dès que tu l'as.</div>` : `<div class="alert c-green"><b>Proxy propre à Emmy</b> : ${esc(p.host)}${s.proxyFrom ? " (différent de celui copié de Sandra)" : ""}.</div>`;
-    const num = (k, l, min, max) => `<div><label class="f">${l}</label><input type="number" min="${min}" max="${max}" data-prog="${k}" value="${esc(P[k])}" /></div>`;
-    return `<h2>Réglages</h2><p class="lead">Tout ce qui se branche une fois. Les clés restent côté serveur : personne ne peut les relire, même toi (champ vide = inchangé).</p>
-      <div class="card import"><h3>Récupérer de Threads HQ (Sandra) ${tag(c.proxy && c.rotation && c.sms)}</h3>
-        <p class="muted">Copie le proxy, le lien de rotation et les clés SMS du CRM de Sandra, de serveur à serveur. Personne ne voit les clés.</p>
-        <ol class="helpsteps"><li>Ouvre <a href="https://threads-hq-sa.netlify.app" target="_blank" rel="noopener">threads-hq-sa.netlify.app</a>, Réglages.</li><li>« Créer un code de transfert », puis Copier.</li><li>Colle-le ici, « Récupérer ».</li></ol>
-        <div class="inrow"><input data-importcode placeholder="TE-..." autocomplete="off" /><button class="btn" data-act="importHq" data-wait="Récupération...">Récupérer</button></div>
-      </div>
-      <div class="card"><h3>1. Proxy ${tag(c.proxy && !!p)}</h3>
-        ${pxSrc}
-        <p class="muted">Recopie les cases de ton panel proxy. Le CRM lit l'IP par le port HTTP, et donne le port SOCKS5 à Emmy pour GeeLark.</p>
+    const num = (k, l, min, max) => `<div><label class="f">${A(l)}</label><input type="number" min="${min}" max="${max}" data-prog="${k}" value="${esc(P[k])}" /></div>`;
+    return `<h2>${A("Réglages")}</h2><p class="lead">${A("Tout ce qui se branche une fois. Les clés restent côté serveur : personne ne peut les relire (champ vide = inchangé).")}</p>
+      <div class="card"><h3>1. ${A("Proxy")} ${tag(c.proxy && !!p)}</h3>
+        <p class="muted">${A("Recopie les cases de ton panel proxy. Le CRM lit l'IP par le port HTTP, et donne le port SOCKS5 pour GeeLark.")}</p>
         <div class="grid3">
-          <div><label class="f">Hôte</label><input data-px="host" value="${esc(p?.host || "")}" placeholder="ex. ydgnjl5mqn.cn.fxdx.in" autocomplete="off" /></div>
-          <div><label class="f">Port HTTP</label><input data-px="port" value="${esc(p?.port || "")}" inputmode="numeric" placeholder="ex. 14953" /></div>
-          <div><label class="f">Port SOCKS5 <small>(GeeLark)</small></label><input data-px="socks" value="${esc(s.socksPort || "")}" inputmode="numeric" placeholder="ex. 17157" /></div>
-          <div><label class="f">Utilisateur</label><input data-px="user" value="${esc(p?.user || "")}" autocomplete="off" /></div>
-          <div><label class="f">Mot de passe</label><input data-px="pass" value="${esc(p?.pass || "")}" autocomplete="off" /></div>
+          <div><label class="f">${A("Hôte")}</label><input data-px="host" value="${esc(p?.host || "")}" placeholder="ex. abc123.cn.fxdx.in" autocomplete="off" /></div>
+          <div><label class="f">${A("Port HTTP")}</label><input data-px="port" value="${esc(p?.port || "")}" inputmode="numeric" placeholder="14953" /></div>
+          <div><label class="f">${A("Port SOCKS5")} <small>(GeeLark)</small></label><input data-px="socks" value="${esc(s.socksPort || "")}" inputmode="numeric" placeholder="17157" /></div>
+          <div><label class="f">${A("Utilisateur")}</label><input data-px="user" value="${esc(p?.user || "")}" autocomplete="off" /></div>
+          <div><label class="f">${A("Mot de passe")}</label><input data-px="pass" value="${esc(p?.pass || "")}" autocomplete="off" /></div>
         </div>
-        ${s.proxy && !p ? `<div class="alert c-red">Le proxy enregistré est incomplet (« ${esc(s.proxy)} ») : remplis les 5 cases et enregistre.</div>` : ""}
-        <label class="f">Lien de rotation d'IP ${tag(c.rotation)} <small>(secret)</small></label>
-        <input data-sec="rotationUrl" placeholder="${c.rotation ? "déjà branché, colle pour remplacer" : "https://..."}" />
-        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveConn" data-wait="Enregistrement...">Enregistrer le proxy</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester l'IP</button></div>
+        ${s.proxy && !p ? `<div class="alert c-red">${esc(A("Le proxy enregistré est incomplet (« {x} ») : remplis les 5 cases et enregistre.", { x: s.proxy }))}</div>` : ""}
+        <label class="f">${A("Lien de rotation d'IP")} ${tag(c.rotationOk)} <small>(${A("secret")})</small></label>
+        <input data-sec="rotationUrl" placeholder="${c.rotation ? A("déjà branché, colle pour remplacer") : "https://..."}" />
+        ${c.rotation && !c.rotationOk ? `<div class="alert c-red">${esc(A("Ce lien de rotation a été enregistré pour un autre proxy ({x}). Colle ici le lien de rotation de ce proxy.", { x: c.rotationFor || "?" }))}</div>` : ""}
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveConn" data-wait="${t("wait")}">${A("Enregistrer le proxy")}</button><button class="btn light" data-act="testIp" data-wait="${t("wait")}">${A("Tester l'IP")}</button></div>
         ${S.ipTest ? `<div class="alert ${S.ipTest.ok ? "c-green" : "c-red"}">${esc(S.ipTest.msg)}</div>` : ""}
       </div>
-      <div class="card"><h3>2. Numéros et e-mails (vérifications) ${tag(c.sms)}</h3>
-        <label class="f">Hero SMS : clé API ${tag(c.smsHero)} <small>(numéros + e-mails temporaires)</small></label><input data-sec="heroToken" placeholder="${c.smsHero ? "déjà branché" : "clé API Hero"}" />
-        <label class="f">SMSPool : clé API ${tag(c.smsPool)}</label><input data-sec="spKey" placeholder="${c.smsPool ? "déjà branché" : "clé API SMSPool"}" />
-        <label class="f">SMSOnline : User ID et clé ${tag(c.smsOnline)}</label><div class="inrow"><input data-sec="soUserId" placeholder="User ID" /><input data-sec="soKey" placeholder="clé API" /></div>
-        <label class="f">Pays des numéros</label>
-        <div class="row">${[[78, "France"], [187, "USA"], [16, "Royaume-Uni"]].map(([id, n]) => `<label class="ck"><input type="checkbox" data-cty="${id}" ${(s.smsCountries || [78, 187]).map(Number).includes(id) ? "checked" : ""} /> ${n}</label>`).join("")}</div>
-        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSms" data-wait="Enregistrement...">Enregistrer</button></div>
+      <div class="card"><h3>2. ${A("Numéros et e-mails (vérifications)")} ${tag(c.sms)}</h3>
+        <label class="f">${A("Hero SMS : clé API")} ${tag(c.smsHero)} <small>(${A("numéros + e-mails temporaires")})</small></label><input data-sec="heroToken" placeholder="${c.smsHero ? A("déjà branché") : A("clé API")}" />
+        <label class="f">${A("SMSPool : clé API")} ${tag(c.smsPool)}</label><input data-sec="spKey" placeholder="${c.smsPool ? A("déjà branché") : A("clé API")}" />
+        <label class="f">${A("SMSOnline : User ID et clé")} ${tag(c.smsOnline)}</label><div class="inrow"><input data-sec="soUserId" placeholder="User ID" /><input data-sec="soKey" placeholder="${A("clé API")}" /></div>
+        <label class="f">${A("Pays des numéros")}</label>
+        <div class="row">${[[78, "France"], [187, "USA"], [16, "Royaume-Uni"]].map(([id, n]) => `<label class="ck"><input type="checkbox" data-cty="${id}" ${(s.smsCountries || [78, 187]).map(Number).includes(id) ? "checked" : ""} /> ${A(n)}</label>`).join("")}</div>
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveSms" data-wait="${t("wait")}">${A("Enregistrer")}</button></div>
       </div>
-      <div class="card"><h3>3. Programme de warm-up</h3>
+      <div class="card"><h3>3. ${A("Programme de warm-up")}</h3>
         <div class="grid3">
           ${num("perDay", "Actions par jour et par compte", 1, 20)}
           ${num("gapMin", "Minutes mini entre 2 actions d'un compte", 0, 600)}
@@ -725,22 +723,22 @@ const VIEWS = {
           ${num("w4Photo", "Semaine 4+ : commentaires photo / jour", 0, 20)}
           ${num("activeAfterDay", "Compte « prêt » à partir du jour", 8, 120)}
         </div>
-        <label class="f">Part des comptes en français (le reste en anglais)</label><input type="number" min="0" max="100" data-s="langFr" value="${esc(s.langFr ?? 70)}" />
-        <label class="ck" style="margin-top:12px"><input type="checkbox" data-s="rotateEachPass" ${s.rotateEachPass !== false ? "checked" : ""} /> Changer l'IP avant chaque passage sur un compte</label>
-        <label class="f">Fuseau horaire (changement de jour)</label><input data-s="timezone" value="${esc(s.timezone || "Asia/Bangkok")}" />
-        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveProg" data-wait="Enregistrement...">Enregistrer le programme</button></div>
+        <label class="f">${A("Part des comptes en français (le reste en anglais)")}</label><input type="number" min="0" max="100" data-s="langFr" value="${esc(s.langFr ?? 70)}" />
+        <label class="ck" style="margin-top:12px"><input type="checkbox" data-s="rotateEachPass" ${s.rotateEachPass !== false ? "checked" : ""} /> ${A("Changer l'IP avant chaque passage sur un compte")}</label>
+        <label class="f">${A("Fuseau horaire (changement de jour)")}</label><input data-s="timezone" value="${esc(s.timezone || "Asia/Bangkok")}" />
+        <div class="row" style="margin-top:12px"><button class="btn" data-act="saveProg" data-wait="${t("wait")}">${A("Enregistrer le programme")}</button></div>
       </div>
-      <div class="card"><h3>4. Accès</h3>
-        <table class="tbl"><tbody>${(S.data.users || []).map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${u.role === "admin" ? "admin" : "VA"}</td><td style="text-align:right">${u.name !== S.data.me.name ? `<button class="btn sm bad" data-act="userDel" data-name="${esc(u.name)}">Retirer</button>` : ""}</td></tr>`).join("")}</tbody></table>
-        <div class="inrow" style="margin-top:12px"><input data-u="name" placeholder="Prénom (ex. Emmy)" value="Emmy" /><input data-u="pin" placeholder="Code 4 à 8 chiffres" inputmode="numeric" /><select data-u="role"><option value="va">VA</option><option value="admin">admin</option></select><button class="btn" data-act="userAdd">Ajouter</button></div>
-        <p class="muted">Emmy ouvre le site, tape son code : elle voit seulement son travail (pas les réglages, pas le journal).</p>
+      <div class="card"><h3>4. ${A("Accès")}</h3>
+        <table class="tbl"><tbody>${(S.data.users || []).map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${u.role === "admin" ? A("admin") : A("VA")}</td><td style="text-align:right">${u.name !== S.data.me.name ? `<button class="btn sm bad" data-act="userDel" data-name="${esc(u.name)}">${A("Retirer")}</button>` : ""}</td></tr>`).join("")}</tbody></table>
+        <div class="inrow" style="margin-top:12px"><input data-u="name" placeholder="${A("Prénom (ex. Emmy)")}" value="Emmy" /><input data-u="pin" placeholder="${A("Code 4 à 8 chiffres")}" inputmode="numeric" /><select data-u="role"><option value="va">${A("VA")}</option><option value="admin">${A("admin")}</option></select><button class="btn" data-act="userAdd">${A("Ajouter")}</button></div>
+        <p class="muted">${A("En VA, on voit seulement le travail (pas les réglages, pas le journal).")}</p>
       </div>`;
   },
 
   journal() {
     const logs = S.data.logs || [];
-    return `<h2>Journal</h2><p class="lead">Tout ce qui se passe, du plus récent au plus ancien.</p>
-      <div class="card list">${logs.slice(0, 300).map((l) => `<div class="task"><div class="task-text"><b>${fmt(l.at)} · ${esc(l.who)} · ${esc(LOGS[l.action] || l.action)}</b><span>${esc(logDetails(l))}</span></div></div>`).join("") || '<p class="muted" style="padding:16px">Vide.</p>'}</div>`;
+    return `<h2>${A("Journal")}</h2><p class="lead">${A("Tout ce qui se passe, du plus récent au plus ancien.")}</p>
+      <div class="card list">${logs.slice(0, 300).map((l) => `<div class="task"><div class="task-text"><b>${fmt(l.at)} · ${esc(l.who)} · ${esc(LOGS[l.action] ? A(LOGS[l.action]) : l.action)}</b><span>${esc(logDetails(l))}</span></div></div>`).join("") || `<p class="muted" style="padding:16px">${A("Vide.")}</p>`}</div>`;
   },
 };
 const LOGS = {
@@ -748,21 +746,21 @@ const LOGS = {
   compte_cree: "Compte ajouté", creation_ratee: "Ajout raté", action_faite: "Action faite", action_annulee: "Action annulée", statut_change: "Statut changé",
   numero_achete: "Numéro pris", code_recu: "Code reçu", numero_annule: "Numéro annulé", email_achete: "E-mail pris", email_annule: "E-mail annulé",
   compte_modifie: "Compte modifié", compte_supprime: "Compte supprimé", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées de Threads HQ", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock",
+  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock",
 };
 function logDetails(l) {
   const out = [];
   if (l.pseudo) out.push("@" + l.pseudo);
-  if (l.kind) out.push(L["k_" + l.kind]?.[2] || l.kind);
+  if (l.kind) out.push(t("k_" + l.kind));
   if (l.text) out.push("« " + l.text + " »");
   if (l.ip) out.push((l.before ? `${l.before} > ` : "IP ") + l.ip + (l.country ? ` (${l.country})` : ""));
-  if (l.status) out.push(L["status_" + l.status]?.[2] || l.status);
+  if (l.status) out.push(L["status_" + l.status] ? t("status_" + l.status) : l.status);
   if (l.note) out.push(l.note);
   if (l.phone) out.push(l.phone);
   if (l.email) out.push(l.email);
   if (l.reason) out.push(l.reason);
   if (l.geelarkProfile) out.push("GeeLark " + l.geelarkProfile);
-  if (l.ajoutes != null) out.push(`${l.ajoutes} ajouté(s), ${l.doublons} doublon(s)`);
+  if (l.ajoutes != null) out.push(A("{a} ajouté(s), {b} doublon(s)", { a: l.ajoutes, b: l.doublons }));
   if (l.user) out.push(l.user);
   if (l.name) out.push(l.name);
   return out.join(", ");
@@ -839,7 +837,7 @@ function passView() {
   const dn = doneOf(a);
   const kind = P.kind;
   const rotOn = S.data.settings.rotateEachPass !== false;
-  const rotConf = S.data.configured.rotation;
+  const rotConf = S.data.configured.rotationOk;
   const ipOk = !rotOn || (S.data.lastIp && new Date(S.data.lastIp.at).getTime() >= P.startedAt - 1000);
   const lang = a.lang || "fr";
   const text = P.own ? P.ownOut || "" : P.text;
@@ -972,12 +970,7 @@ const ACT = {
   async testIp(b) {
     S.ipTest = null;
     await run(b, async () => {
-      try {
-        const r = await api("ip");
-        S.ipTest = { ok: r.country === "FR", msg: `IP vue par le proxy : ${r.ip} · ${r.country || "?"} ${r.city || ""} ${r.org || ""}${r.country === "FR" ? " · OK pour GeeLark" : " · pas en France, vérifie le proxy"}` };
-      } catch (e) {
-        S.ipTest = { ok: false, msg: e.message };
-      }
+      await ipCheck("");
       render();
     });
   },
@@ -1100,7 +1093,7 @@ const ACT = {
       <label class="f">${t("lang")}</label><select data-e="lang"><option value="fr" ${a.lang !== "en" ? "selected" : ""}>FR</option><option value="en" ${a.lang === "en" ? "selected" : ""}>EN</option></select>
       ${isAdmin() ? fld("startDay", t("startDay") + " (AAAA-MM-JJ)", a.startDay) : ""}
       <label class="f">${t("notes")}</label><textarea data-e="notes" rows="3">${esc(a.notes || "")}</textarea>
-      <div class="row" style="margin-top:14px">${isAdmin() ? `<button class="btn bad" data-act="delAcc" data-id="${a.id}">Supprimer</button>` : ""}<span class="spacer"></span><button class="btn" data-act="saveAcc" data-id="${a.id}" data-wait="...">${t("save")}</button></div>`);
+      <div class="row" style="margin-top:14px">${isAdmin() ? `<button class="btn bad" data-act="delAcc" data-id="${a.id}">${A("Supprimer")}</button>` : ""}<span class="spacer"></span><button class="btn" data-act="saveAcc" data-id="${a.id}" data-wait="...">${t("save")}</button></div>`);
   },
   async saveAcc(b) {
     const body = {};
@@ -1116,7 +1109,7 @@ const ACT = {
   delAcc(b) {
     if (b.dataset.sure !== "1") {
       b.dataset.sure = "1";
-      b.textContent = "Sûr ? Reclique";
+      b.textContent = A("Sûr ? Reclique");
       return;
     }
     run(b, async () => {
@@ -1307,25 +1300,15 @@ const ACT = {
     // une ligne entière collée dans « Hôte » : on la découpe
     const whole = parseProxy(host.includes(":") ? host : "");
     if (whole) ({ host, port, user, pass } = { host: whole.host, port: whole.port, user: whole.user || user, pass: whole.pass || pass });
-    if (!host || !/^\d{2,5}$/.test(port)) return toast("Il faut au moins l'hôte et le port HTTP (un nombre).", true);
+    if (!host || !/^\d{2,5}$/.test(port)) return toast(A("Il faut au moins l'hôte et le port HTTP (un nombre)."), true);
     const body = { proxy: [host, port, user, pass].join(":").replace(/:+$/, ""), socksPort: v("socks").replace(/\D/g, "") };
     const rot = $('[data-sec="rotationUrl"]').value.trim();
     await run(b, async () => {
       await api("settings", body);
       if (rot) await api("secrets", { rotationUrl: rot });
+      // test tout de suite : une faute de frappe dans l'hôte se voit à l'enregistrement, pas le jour où Emmy bloque
+      await ipCheck(A("Enregistré") + ". ");
       await refresh();
-      toast("Proxy enregistré");
-    });
-  },
-  async importHq(b) {
-    const code = ($("[data-importcode]")?.value || "").trim();
-    if (!code) return toast("Colle le code de Threads HQ.", true);
-    await run(b, async () => {
-      const r = await api("import/hq", { code });
-      S.smsPrices = null;
-      await refresh();
-      const names = { proxy: "proxy", socksPort: "port SOCKS5", rotationUrl: "lien de rotation", heroToken: "Hero SMS", spKey: "SMSPool", soKey: "SMSOnline", proxyUk: "proxy UK", rotationUrlUk: "rotation UK" };
-      toast("Récupéré : " + (r.imported.map((k) => names[k]).filter(Boolean).join(", ") || "rien"));
     });
   },
   async saveSms(b) {
@@ -1337,7 +1320,7 @@ const ACT = {
       await api("settings", { smsCountries: smsCountries.length ? smsCountries : [78] });
       S.smsPrices = null;
       await refresh();
-      toast("Enregistré");
+      toast(A("Enregistré"));
     });
   },
   async saveProg(b) {
@@ -1346,7 +1329,7 @@ const ACT = {
     await run(b, async () => {
       await api("settings", { program, langFr: Number($('[data-s="langFr"]').value), rotateEachPass: $('[data-s="rotateEachPass"]').checked, timezone: $('[data-s="timezone"]').value.trim() || "Asia/Bangkok" });
       await refresh();
-      toast("Programme enregistré");
+      toast(A("Programme enregistré"));
     });
   },
   async saveBanks(b) {
@@ -1354,7 +1337,7 @@ const ACT = {
     await run(b, async () => {
       await api("settings", { comments: { fr: get("comments.fr"), en: get("comments.en") }, captions: { fr: get("captions.fr"), en: get("captions.en") } });
       await refresh();
-      toast("Textes enregistrés");
+      toast(A("Textes enregistrés"));
     });
   },
   async mediaDel(b) {
@@ -1367,11 +1350,11 @@ const ACT = {
     let text = $("[data-stocktext]").value;
     const files = $("[data-stockfile]").files;
     for (const f of files) text += "\n" + (await f.text());
-    if (!text.trim()) return toast("Colle la liste ou choisis un fichier.", true);
+    if (!text.trim()) return toast(A("Colle la liste ou choisis un fichier."), true);
     await run(b, async () => {
       const r = await api("stock/import", { text });
       await refresh();
-      toast(`${r.added} compte(s) ajouté(s), ${r.skipped} doublon(s) ignoré(s)`);
+      toast(A("{a} compte(s) ajouté(s), {b} doublon(s) ignoré(s)", { a: r.added, b: r.skipped }));
     });
   },
   async userAdd(b) {
@@ -1379,7 +1362,7 @@ const ACT = {
     await run(b, async () => {
       await api("users", body);
       await refresh();
-      toast(`Accès créé pour ${body.name}`);
+      toast(A("Accès créé pour {x}", { x: body.name }));
     });
   },
   async userDel(b) {
@@ -1389,6 +1372,15 @@ const ACT = {
     });
   },
 };
+async function ipCheck(prefix) {
+  try {
+    const r = await api("ip");
+    const fr = r.country === "FR";
+    S.ipTest = { ok: fr, msg: prefix + A("IP vue par le proxy : {ip} · {c} {city} {org}", { ip: r.ip, c: r.country || "?", city: r.city || "", org: r.org || "" }) + " · " + (fr ? A("OK pour GeeLark") : A("pas en France, vérifie le proxy")) };
+  } catch (e) {
+    S.ipTest = { ok: false, msg: A("Proxy enregistré, mais il ne répond pas : {x} Vérifie chaque case (une lettre en trop ou en moins dans l'hôte suffit).", { x: e.message }) };
+  }
+}
 function readWiz() {
   if (!S.wiz) return;
   document.querySelectorAll("input[data-f],select[data-f],textarea[data-f]").forEach((el) => (S.wiz.f[el.dataset.f] = el.value));
@@ -1468,7 +1460,7 @@ document.addEventListener("change", async (e) => {
       }
     }
     await refresh();
-    toast(`${ok} photo(s) ajoutée(s)`);
+    toast(A("{n} photo(s) ajoutée(s)", { n: ok }));
   }
 });
 document.addEventListener("keydown", (e) => {

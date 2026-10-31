@@ -37,6 +37,12 @@ ok(st.settings.proxyFrom && st.settings.proxyFrom.src === "hq" && st.settings.pr
 r = await call(BASE, "settings", { proxy: "emmy.proxy.test:9000:emmy:pw2" }, em);
 st = (await call(BASE, "state", null, em)).j;
 ok(st.settings.proxy.startsWith("emmy.proxy.test") && st.settings.proxyFrom.host === "fr.grid.test", "nouveau proxy d'Emmy : différent de celui de Sandra");
+ok(st.configured.rotationOk === false, "nouveau proxy : le lien de rotation de Sandra n'est plus valable");
+r = await call(BASE, "rotate", {}, em);
+ok(r.s === 409 && /emmy\.proxy\.test/.test(r.j.error), "rotation refusée avec le lien de Sandra : " + r.j.error);
+await call(BASE, "secrets", { rotationUrl: "https://rotate.test/emmy" }, em);
+st = (await call(BASE, "state", null, em)).j;
+ok(st.configured.rotationOk === true, "lien de rotation d'Emmy collé : validé pour son proxy");
 
 r = await call(BASE, "import/hq", { code, url: HQ }, em);
 ok(r.s === 403, "le même code ne marche qu'une fois");

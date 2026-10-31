@@ -7,7 +7,7 @@ Lis ce fichier en entier avant de toucher au code.
 - Elle ne crée pas de compte : elle les ajoute (IP neuve, téléphone GeeLark + proxy, connexion avec 2FA), puis les réchauffe.
 - Programme de warm-up : 5 actions par jour et par compte. Semaine 1 = commentaires texte. Semaine 2 = texte + photo. Semaine 3 = un post tous les 2 jours + commentaires. Semaine 4+ = 1 post/jour + commentaires.
 - 70 % des comptes en français, 30 % en anglais (langue attribuée toute seule à l'ajout).
-- Interface d'Emmy en thaï parlé (pas formel), boutons EN et FR. Pages admin (Awen) en français.
+- TOUTE l'interface (Emmy ET pages admin) en thaï parlé (pas formel), boutons EN et FR. Pages admin : `A("phrase française")` traduite par `ADM` dans i18n.js. Aucun texte en dur. Test : `dev/test-admin-th.mjs`.
 - Copie allégée de Threads HQ (repo `threads-hq`, CRM de la VA Sandra) : même serveur, sans Metricool dans l'interface.
 
 ## Où sont les choses
@@ -58,12 +58,12 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 - Netlify, site relié à ce repo (branche `main`) : push = redéploiement en ~30 s. Stockage Netlify Blobs du site (séparé de Threads HQ).
 - Premier code tapé sur le site neuf = admin (Awen). Ensuite Réglages > Accès pour créer le code d'Emmy.
 
-## Récupérer les connexions de Threads HQ
-- Réglages > « Récupérer de Threads HQ » : Awen colle le code créé dans Threads HQ (Réglages > Créer un code de transfert). `import/hq` appelle `https://threads-hq-sa.netlify.app/api/transfer/pull` et range proxy + clés côté serveur. Profil IP forcé sur France.
-- Test : `dev/test-transfer.mjs` (Threads HQ local sur 8795 + Threads Emmy local sur 8796).
+## Plus rien de Sandra dans l'interface (31 oct., 17 h 45)
+- Demande d'Awen : retirer le bloc « Récupérer de Threads HQ (Sandra) » et le badge « même proxy que Sandra » pour éviter les malentendus. La route serveur `import/hq` reste (test `dev/test-transfer.mjs`) mais n'est plus affichée.
+- Un lien de rotation appartient à UN proxy : `secrets.rotationFor` = hôte du proxy au moment où le lien est collé. Hôte différent ou propriétaire inconnu = `configured.rotationOk` faux, « à faire » en rouge dans Réglages, et `rotate` refusé (409) avec le nom du proxy. Évite de faire tourner l'IP du proxy de Sandra.
+- Enregistrer le proxy lance « Tester l'IP » tout seul (une faute de frappe dans l'hôte se voit tout de suite).
 
 ## Proxy (31 oct., 17 h 30)
 - Réglages > Proxy : 5 cases comme le panel du fournisseur (hôte, port HTTP, port SOCKS5, utilisateur, mot de passe). Une ligne entière collée dans « Hôte » est découpée toute seule.
 - Le serveur refuse un proxy sans port (bug réel : seul l'hôte était enregistré, GeeLark n'avait ni utilisateur ni mot de passe). `currentIp` ne lit JAMAIS l'IP sans proxy : proxy vide ou incomplet = erreur claire (avant, il lisait l'IP du serveur et tout semblait marcher).
-- `settings.proxyFrom` (posé par l'import Threads HQ) : la page affiche « Même proxy que Sandra » tant que l'hôte/port/utilisateur n'ont pas changé, sinon « Proxy propre à Emmy ».
 - « Tester l'IP » : affiche l'IP, le pays et l'opérateur, vert seulement si FR.
