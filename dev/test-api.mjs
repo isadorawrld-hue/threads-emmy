@@ -62,6 +62,15 @@ r = await call("rotate", {}, emmy);
 r = await call("accounts/create", { bought: true, pseudo: "autre", password: "x", geelarkProfile: "emmy-01" }, emmy);
 ok(r.s === 400, "même téléphone GeeLark refusé ? " + (r.j.error || "(accepté)"));
 
+// --- warm-up de 10 min après l'ajout
+ok(made.every((x) => x.needWarm10 === true), "comptes ajoutés : warm-up 10 min à faire");
+r = await call(`accounts/${made[0].id}/warm10`, { startedAt: Date.now() - 60e3 }, emmy);
+ok(r.s === 400, "warm-up fini trop tôt refusé : " + r.j.error);
+for (const x of made) {
+  r = await call(`accounts/${x.id}/warm10`, { startedAt: Date.now() - 11 * 60e3 }, emmy);
+}
+ok(r.s === 200 && !r.j.needWarm10 && r.j.warm10At, "warm-up fini après 10 min : le compte entre dans la file");
+
 // --- actions
 const a = made[0];
 r = await call(`accounts/${a.id}/act`, { kind: "c", text: "mdr trop vrai" }, emmy);

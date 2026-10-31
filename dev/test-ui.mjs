@@ -21,6 +21,7 @@ const adm = (await call("login", { pin: "1234", name: "Awen" })).token;
 await call("settings", { proxy: "fr.proxy-grid.test:8000:awen_user:secretpw", socksPort: "17157" }, adm);
 await call("secrets", { rotationUrl: "https://rotate.test/go", heroToken: "HERO_TEST", spKey: "SP_TEST" }, adm);
 await call("users", { name: "Emmy", pin: "5678", role: "va" }, adm);
+await call("settings", { warmupMinutes: 0.05 }, adm); // warm-up de 3 s pour le test (10 min en vrai)
 await call("stock/import", { text: "lea_x99:pw123:lea@outlook.com:mailpw!:JBSWY3DPEHPK3PXP\nmia.cool pw9 mia@gmail.com Mpw9 JBSW Y3DP EHPK 3PXP\nnina.rose pw5 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ\nzoe.lune pw6 JBSWY3DPEHPK3PXP" }, adm);
 
 const browser = await chromium.launch();
@@ -84,8 +85,19 @@ for (let n = 1; n <= 2; n++) {
   await page.waitForSelector('[data-act="wizCreate"]');
   if (n === 1) await shot("06-ajout-4-ca-marche");
   await click('[data-act="wizCreate"]');
+  // étape 5 : warm-up obligatoire avant la file du jour
+  await page.waitForSelector('[data-act="warmStart"]');
+  ok((await page.textContent(".stepnum")).includes("5"), `@${user} : étape 5, warm-up affiché`);
+  let st0 = await call("state", null, adm);
+  ok(st0.accounts.find((a) => a.pseudo === user).needWarm10 === true, `@${user} : pas encore dans la file (warm-up à faire)`);
+  if (n === 1) await shot("06c-warmup-10min");
+  await click('[data-act="warmStart"]');
+  await page.waitForTimeout(3600);
+  for (const c of await page.$$("[data-warmck]")) await c.check();
+  await page.waitForFunction(() => !document.querySelector('[data-act="warmFinish"]').disabled);
+  await click('[data-act="warmFinish"]');
   await page.waitForSelector("main .alert.c-green");
-  ok((await page.textContent("main")).includes(user), `compte @${user} ajouté`);
+  ok((await page.textContent("main")).includes(user), `compte @${user} ajouté après le warm-up`);
 }
 // 3e compte : mauvais mot de passe = scam, un autre compte arrive tout de suite sur le même téléphone
 await click('[data-act="wizReset"]');

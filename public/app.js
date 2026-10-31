@@ -311,7 +311,7 @@ function nextAt(a) {
 }
 function queue() {
   const now = Date.now();
-  const list = S.data.accounts.filter((a) => WORKING.includes(a.status)).map((a) => {
+  const list = S.data.accounts.filter((a) => WORKING.includes(a.status) && !a.needWarm10).map((a) => {
     const k = nextKind(a);
     const at = nextAt(a);
     return { a, k, at, ready: !!k && at <= now, done: doneOf(a), plan: planOf(a) };
@@ -427,7 +427,7 @@ function render() {
   if (!all.some((x) => x[0] === S.tab)) S.tab = "today";
   const ip = S.data.lastIp;
   const fresh = freshIp();
-  const lock = waitingCode() || (S.wiz && S.wiz.step >= 2 && S.wiz.step <= 4);
+  const lock = waitingCode() || (S.wiz && S.wiz.step >= 2 && S.wiz.step <= 5);
   const navBtn = ([id, l, c]) => `<button class="nav ${S.tab === id ? "on" : ""}" data-tab="${id}">${icon(id)}<span>${esc(l)}</span>${c ? `<em>${c}</em>` : ""}</button>`;
   const langs = `<div class="langs">${LANGS.map((l) => `<button class="${S.lang === l ? "on" : ""}" data-lang="${l}">${l.toUpperCase()}</button>`).join("")}</div>`;
   app.innerHTML = `
@@ -476,6 +476,7 @@ const VIEWS = {
     const doneN = q.reduce((s, x) => s + Math.min(x.done.total, x.plan.total), 0);
     const target = q.reduce((s, x) => s + x.plan.total, 0);
     const probs = S.data.accounts.filter((a) => ["verif", "restreint"].includes(a.status));
+    const warmTodo = S.data.accounts.filter((a) => a.needWarm10 && WORKING.includes(a.status));
     const acts = S.data.accounts.flatMap((a) => todayActs(a).filter((x) => x.by === S.data.me.name || isAdmin())).sort((a, b) => (a.at < b.at ? -1 : 1));
     let big;
     if (!q.length) big = `<div class="card done-all"><b>${t("noAccounts")}</b><div class="row" style="margin-top:12px"><button class="btn" data-tab="add">${t("t_add")}</button></div></div>`;
@@ -491,6 +492,7 @@ const VIEWS = {
       </div>
       ${big}
       ${acts.length ? `<p class="muted" style="margin-top:10px">${t("firstAct", { t: hm(acts[0].at), l: hm(acts[acts.length - 1].at) })}</p>` : ""}
+      ${warmTodo.length ? `<h3>${t("warmTodo", { m: warmMin() })}</h3><div class="card list">${warmTodo.map((a) => `<div class="task"><div class="task-text"><b>@${esc(a.pseudo)} ${langPill(a.lang)}</b><span>${esc(a.geelarkProfile || "-")}</span></div><button class="btn sm accent" data-act="warmResume" data-id="${a.id}">${t("warmResume")}</button></div>`).join("")}</div>` : ""}
       ${probs.length ? `<h3>${t("problems")}</h3><div class="card list">${probs.map((a) => `<div class="task"><div class="task-text"><b>@${esc(a.pseudo)}</b> ${pill(a.status)}${a.notes ? `<span class="muted"> · ${esc(String(a.notes).split("\n").slice(-1)[0])}</span>` : ""}</div><button class="btn sm light" data-act="showLogin" data-id="${a.id}">${t("loginInfo")}</button>${a.status === "verif" ? `<button class="btn sm light" data-act="goVerify" data-id="${a.id}">${t("goVerify")}</button>` : ""}<button class="btn sm ok" data-act="setState" data-id="${a.id}" data-st="warmup">${t("fixed")}</button></div>`).join("")}</div>` : ""}
       ${q.length ? `<h3>${t("t_accounts")}</h3>
       <div class="card list">${q.map((x) => `<div class="task ${x.ready ? "" : "dim"}">
@@ -516,7 +518,7 @@ const VIEWS = {
 
   add() {
     const w = S.wiz || (S.wiz = { step: 1, f: {} });
-    const steps = `<div class="steps">${[1, 2, 3, 4].map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
+    const steps = `<div class="steps">${[1, 2, 3, 4, 5].map((i) => `<span class="${i <= w.step ? "on" : ""}"></span>`).join("")}</div>`;
     const head = (k) => `<div class="stepnum">${t("stepN", { n: w.step })}</div><h3>${t(k)}</h3>`;
     const nav = (nextOk = true) => `<div class="row" style="margin-top:18px">${w.step > 1 ? `<button class="btn light" data-act="wizBack">${t("back")}</button>` : ""}<span class="spacer"></span>${nextOk ? `<button class="btn" data-act="wizNext">${t("next")}</button>` : ""}</div>`;
     let body = "";
@@ -566,6 +568,21 @@ const VIEWS = {
         <label class="f">${t("langAuto")}</label>
         <select data-f="lang"><option value="">${t("auto")}</option><option value="fr" ${w.f.lang === "fr" ? "selected" : ""}>FR</option><option value="en" ${w.f.lang === "en" ? "selected" : ""}>EN</option></select>
         <div class="row" style="margin-top:18px"><button class="btn light" data-act="wizBack">${t("back")}</button><span class="spacer"></span><button class="btn bad" data-act="wizFail">${t("a4no")}</button><button class="btn ok" data-act="wizCreate" data-wait="${t("wait")}">${t("a4yes")}</button></div>`;
+    } else if (w.step === 5) {
+      const a = accById(w.accId);
+      if (!a) { S.wiz = { step: 1, f: {} }; return VIEWS.add(); }
+      const m = warmMin();
+      const start = Number(lsGet("warm10_" + a.id) || 0);
+      const end = start + m * 60e3;
+      const over = start && Date.now() >= end;
+      body = `<div class="stepnum">${t("stepN", { n: 5 })}</div><h3>${t("a5", { m })} · @${esc(a.pseudo)}</h3>
+        <ol class="helpsteps">${tl("a5steps").map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+        ${a.geelarkProfile ? copyLine(t("geelark"), a.geelarkProfile) : ""}
+        <div class="timer" data-warmend="${start ? end : ""}">${start ? "" : `${String(Math.floor(m)).padStart(2, "0")}:00`}</div>
+        ${start ? "" : `<button class="btn accent" data-act="warmStart" data-id="${a.id}">${t("startTimer", { m })}</button>`}
+        <div class="checklist" style="margin-top:14px">${["ck1", "ck2", "ck3"].map((k) => `<label><input type="checkbox" data-warmck /> ${t(k)}</label>`).join("")}</div>
+        <div class="row" style="margin-top:18px"><span class="spacer"></span><button class="btn ok" data-act="warmFinish" data-id="${a.id}" data-wait="${t("wait")}" ${over ? "" : "disabled"}>${t("warmDone")}</button></div>
+        ${over ? "" : `<p class="muted">${t("warmWait")}</p>`}`;
     }
     return `<h2>${t("addTitle")}</h2><p class="lead">${t("addLead")}</p>${steps}<div class="card">${body}</div>`;
   },
@@ -605,6 +622,7 @@ const VIEWS = {
       ${sec(t("g_plan"), tl("g_planSteps", { n: P.perDay, g: P.gapMin, p: P.w2Photo, e: P.w3PostEvery, q: P.w4Posts }))}
       ${sec(t("g_proxy"), tl("a2steps", { type: S.data.settings.socksPort ? "SOCKS5" : "HTTP", c: "FR" }), videoEmbed("/help/geelark.mp4"))}
       ${sec(t("a3"), tl("a3steps"))}
+      ${sec(t("a5", { m: warmMin() }), tl("a5steps"))}
       ${sec(t("g_photo"), tl("g_photoSteps"))}
       ${sec(t("g_verif"), tl("g_verifSteps"), videoEmbed("/help/numero.mp4"))}
       ${sec(t("g_mail"), tl("g_mailSteps"))}
@@ -728,6 +746,7 @@ const VIEWS = {
           ${num("w4Photo", "Semaine 4+ : commentaires photo / jour", 0, 20)}
           ${num("activeAfterDay", "Compte « prêt » à partir du jour", 8, 120)}
         </div>
+        <label class="f">${A("Warm-up juste après l'ajout (minutes)")}</label><input type="number" min="0" max="60" step="1" data-s="warmupMinutes" value="${esc(s.warmupMinutes ?? 10)}" />
         <label class="f">${A("Part des comptes en français (le reste en anglais)")}</label><input type="number" min="0" max="100" data-s="langFr" value="${esc(s.langFr ?? 70)}" />
         <label class="ck" style="margin-top:12px"><input type="checkbox" data-s="rotateEachPass" ${s.rotateEachPass !== false ? "checked" : ""} /> ${A("Changer l'IP avant chaque passage sur un compte")}</label>
         <label class="f">${A("Fuseau horaire (changement de jour)")}</label><input data-s="timezone" value="${esc(s.timezone || "Asia/Bangkok")}" />
@@ -751,7 +770,7 @@ const LOGS = {
   compte_cree: "Compte ajouté", creation_ratee: "Ajout raté", action_faite: "Action faite", action_annulee: "Action annulée", statut_change: "Statut changé",
   numero_achete: "Numéro pris", code_recu: "Code reçu", numero_annule: "Numéro annulé", email_achete: "E-mail pris", email_annule: "E-mail annulé",
   compte_modifie: "Compte modifié", compte_supprime: "Compte supprimé", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock", stock_scam: "Compte scam",
+  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock", stock_scam: "Compte scam", warmup_10min: "Warm-up 10 min fait",
 };
 function logDetails(l) {
   const out = [];
@@ -1169,7 +1188,29 @@ const ACT = {
     readWiz();
     await run(b, async () => {
       const acc = await api("accounts/create", { bought: true, pseudo: w.f.pseudo, password: w.f.password, totp: w.f.totp || "", email: w.f.email || "", emailPassword: w.f.emailPassword || "", geelarkProfile: w.f.geelarkProfile, stockId: w.f.stockId || undefined, lang: w.f.lang || undefined, phone: w.f.phone || "" });
-      S.wiz = { step: 1, f: {}, done: t("added", { p: acc.pseudo }) };
+      // pas fini : warm-up de 10 min tout de suite, même téléphone, même IP
+      S.wiz = { step: 5, f: {}, accId: acc.id };
+      await refresh();
+      toast(t("warmAdded", { p: acc.pseudo, m: warmMin() }));
+    });
+  },
+  warmStart(b) {
+    lsSet("warm10_" + b.dataset.id, String(Date.now()));
+    render();
+  },
+  warmResume(b) {
+    S.wiz = { step: 5, f: {}, accId: b.dataset.id };
+    S.tab = "add";
+    lsSet("em_tab", "add");
+    render();
+  },
+  async warmFinish(b) {
+    if ([...document.querySelectorAll("[data-warmck]")].some((x) => !x.checked)) return toast(t("warmWait"), true);
+    const id = b.dataset.id;
+    await run(b, async () => {
+      const a = await api(`accounts/${id}/warm10`, { startedAt: Number(lsGet("warm10_" + id) || 0) });
+      lsSet("warm10_" + id, "");
+      S.wiz = { step: 1, f: {}, done: t("added", { p: a.pseudo }) };
       await refresh();
     });
   },
@@ -1359,7 +1400,7 @@ const ACT = {
     const program = {};
     document.querySelectorAll("[data-prog]").forEach((el) => (program[el.dataset.prog] = Number(el.value)));
     await run(b, async () => {
-      await api("settings", { program, langFr: Number($('[data-s="langFr"]').value), rotateEachPass: $('[data-s="rotateEachPass"]').checked, timezone: $('[data-s="timezone"]').value.trim() || "Asia/Bangkok" });
+      await api("settings", { program, warmupMinutes: Math.max(0, Math.min(60, Number($('[data-s="warmupMinutes"]').value) || 0)), langFr: Number($('[data-s="langFr"]').value), rotateEachPass: $('[data-s="rotateEachPass"]').checked, timezone: $('[data-s="timezone"]').value.trim() || "Asia/Bangkok" });
       await refresh();
       toast(A("Programme enregistré"));
     });
@@ -1413,6 +1454,20 @@ async function ipCheck(prefix) {
     S.ipTest = { ok: false, msg: A("Proxy enregistré, mais il ne répond pas : {x} Vérifie chaque case (une lettre en trop ou en moins dans l'hôte suffit).", { x: e.message }) };
   }
 }
+const warmMin = () => Number(S.data?.settings?.warmupMinutes ?? 10);
+// chrono du warm-up (le départ est gardé dans le navigateur : un rechargement ne remet pas à zéro)
+setInterval(() => {
+  const el = document.querySelector("[data-warmend]");
+  if (!el || !el.dataset.warmend) return;
+  const left = Math.max(0, Math.round((Number(el.dataset.warmend) - Date.now()) / 1000));
+  el.textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`;
+  const btn = document.querySelector('[data-act="warmFinish"]');
+  if (btn && !left && btn.disabled) {
+    btn.disabled = false;
+    const hint = btn.closest(".card")?.querySelector(".muted:last-child");
+    if (hint) hint.remove();
+  }
+}, 1000);
 function readWiz() {
   if (!S.wiz) return;
   document.querySelectorAll("input[data-f],select[data-f],textarea[data-f]").forEach((el) => (S.wiz.f[el.dataset.f] = el.value));

@@ -75,3 +75,8 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 
 ## Étape GeeLark : langue du téléphone
 - Après les cases du proxy, encadré jaune avec l'image `public/help/cloud-phone-language.png` : « Cloud phone language » (et Location) sur « Based on IP ». Demandé par Awen.
+
+## Warm-up de 10 min après l'ajout (31 oct., 18 h 10)
+- Demandé par Awen (« il doit y être », comme chez Sandra). Étape 5 de l'ajout : chrono `settings.warmupMinutes` (10 par défaut, réglable dans Réglages > Programme), même téléphone, même IP, scroll + 5-10 likes + 3-5 abonnements, zéro post / lien / changement de profil, 3 cases à cocher.
+- Le compte est créé avec `needWarm10: true` : il n'entre PAS dans la file du jour tant que `accounts/:id/warm10` n'est pas validé (refusé avant la fin du chrono). Le départ du chrono est gardé dans le navigateur (`warm10_<id>`) : un rechargement ne le remet pas à zéro.
+- Warm-up pas fini (page fermée) : section « ต้องวอร์ม 10 นาทีก่อน » dans Aujourd'hui, bouton pour le reprendre.
