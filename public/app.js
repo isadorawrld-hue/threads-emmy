@@ -682,6 +682,11 @@ const VIEWS = {
     const p = parseProxy(s.proxy);
     const num = (k, l, min, max) => `<label class="f">${l}</label><input type="number" min="${min}" max="${max}" data-prog="${k}" value="${esc(P[k])}" />`;
     return `<h2>Réglages</h2><p class="lead">Tout ce qui se branche une fois. Les clés restent côté serveur : personne ne peut les relire, même toi (champ vide = inchangé).</p>
+      <div class="card import"><h3>Récupérer de Threads HQ (Sandra) ${tag(c.proxy && c.rotation && c.sms)}</h3>
+        <p class="muted">Copie le proxy, le lien de rotation et les clés SMS du CRM de Sandra, de serveur à serveur. Personne ne voit les clés.</p>
+        <ol class="helpsteps"><li>Ouvre <a href="https://threads-hq-sa.netlify.app" target="_blank" rel="noopener">threads-hq-sa.netlify.app</a>, Réglages.</li><li>« Créer un code de transfert », puis Copier.</li><li>Colle-le ici, « Récupérer ».</li></ol>
+        <div class="inrow"><input data-importcode placeholder="TE-..." autocomplete="off" /><button class="btn" data-act="importHq" data-wait="Récupération...">Récupérer</button></div>
+      </div>
       <div class="card"><h3>1. Proxy (le même que Sandra pour l'instant) ${tag(c.proxy)}</h3>
         <label class="f">Proxy <small>hôte:port:utilisateur:motdepasse (ou utilisateur:mdp@hôte:port)</small></label>
         <input data-s="proxy" value="${esc(s.proxy || "")}" placeholder="hôte:port:utilisateur:motdepasse" />
@@ -734,7 +739,7 @@ const LOGS = {
   compte_cree: "Compte ajouté", creation_ratee: "Ajout raté", action_faite: "Action faite", action_annulee: "Action annulée", statut_change: "Statut changé",
   numero_achete: "Numéro pris", code_recu: "Code reçu", numero_annule: "Numéro annulé", email_achete: "E-mail pris", email_annule: "E-mail annulé",
   compte_modifie: "Compte modifié", compte_supprime: "Compte supprimé", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock",
+  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées de Threads HQ", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock",
 };
 function logDetails(l) {
   const out = [];
@@ -1286,6 +1291,17 @@ const ACT = {
       if (rot) await api("secrets", { rotationUrl: rot });
       await refresh();
       toast("Proxy enregistré");
+    });
+  },
+  async importHq(b) {
+    const code = ($("[data-importcode]")?.value || "").trim();
+    if (!code) return toast("Colle le code de Threads HQ.", true);
+    await run(b, async () => {
+      const r = await api("import/hq", { code });
+      S.smsPrices = null;
+      await refresh();
+      const names = { proxy: "proxy", socksPort: "port SOCKS5", rotationUrl: "lien de rotation", heroToken: "Hero SMS", spKey: "SMSPool", soKey: "SMSOnline", proxyUk: "proxy UK", rotationUrlUk: "rotation UK" };
+      toast("Récupéré : " + (r.imported.map((k) => names[k]).filter(Boolean).join(", ") || "rien"));
     });
   },
   async saveSms(b) {

@@ -57,3 +57,7 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 ## Déploiement
 - Netlify, site relié à ce repo (branche `main`) : push = redéploiement en ~30 s. Stockage Netlify Blobs du site (séparé de Threads HQ).
 - Premier code tapé sur le site neuf = admin (Awen). Ensuite Réglages > Accès pour créer le code d'Emmy.
+
+## Récupérer les connexions de Threads HQ
+- Réglages > « Récupérer de Threads HQ » : Awen colle le code créé dans Threads HQ (Réglages > Créer un code de transfert). `import/hq` appelle `https://threads-hq-sa.netlify.app/api/transfer/pull` et range proxy + clés côté serveur. Profil IP forcé sur France.
+- Test : `dev/test-transfer.mjs` (Threads HQ local sur 8795 + Threads Emmy local sur 8796).

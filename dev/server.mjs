@@ -56,6 +56,8 @@ const brands = [
 ];
 async function fakeFetch(url, opts = {}) {
   const u = new URL(url);
+  // un autre CRM local (ex. Threads HQ pour le transfert des connexions) : vraie requête
+  if (u.hostname === "localhost") return fetch(url, opts);
   if (u.hostname === "rotate.test") {
     ipN++;
     return new Response("ok", { status: 200 });
