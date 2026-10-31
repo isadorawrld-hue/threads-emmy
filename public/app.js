@@ -533,6 +533,7 @@ const VIEWS = {
       const type = socks ? "SOCKS5" : "HTTP";
       const country = (S.data.lastIp && S.data.lastIp.country) || "FR";
       body = `${head("a2")}
+        ${!p.host || !p.port ? `<div class="alert c-red">${t("a1noconf")}</div>` : ""}
         <ol class="helpsteps">${tl("a2steps", { type, c: country }).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
         ${copyLine(t("pType"), type)}${copyLine(t("pHost"), p.host)}${copyLine(t("pPort"), socks || p.port)}${copyLine(t("pUser"), p.user)}${copyLine(t("pPass"), p.pass)}
         <label class="f">${t("phoneName")}</label><input data-f="geelarkProfile" placeholder="${t("phoneNamePh")}" value="${esc(w.f.geelarkProfile || "")}" />
@@ -680,22 +681,30 @@ const VIEWS = {
     const P = prog();
     const tag = (ok) => `<span class="tag ${ok ? "ok" : "miss"}">${ok ? "branché" : "à faire"}</span>`;
     const p = parseProxy(s.proxy);
-    const num = (k, l, min, max) => `<label class="f">${l}</label><input type="number" min="${min}" max="${max}" data-prog="${k}" value="${esc(P[k])}" />`;
+    const fromHq = s.proxyFrom && s.proxyFrom.src === "hq" && p && p.host === s.proxyFrom.host && String(p.port) === String(s.proxyFrom.port) && (p.user || "") === (s.proxyFrom.user || "");
+    const pxSrc = !p ? "" : fromHq ? `<div class="alert c-yellow"><b>Même proxy que Sandra</b> (copié de Threads HQ le ${fmt(s.proxyFrom.at)}). Emmy et Sandra partagent les mêmes IP : quand l'une change l'IP, ça change pour l'autre. Mets le proxy d'Emmy ici dès que tu l'as.</div>` : `<div class="alert c-green"><b>Proxy propre à Emmy</b> : ${esc(p.host)}${s.proxyFrom ? " (différent de celui copié de Sandra)" : ""}.</div>`;
+    const num = (k, l, min, max) => `<div><label class="f">${l}</label><input type="number" min="${min}" max="${max}" data-prog="${k}" value="${esc(P[k])}" /></div>`;
     return `<h2>Réglages</h2><p class="lead">Tout ce qui se branche une fois. Les clés restent côté serveur : personne ne peut les relire, même toi (champ vide = inchangé).</p>
       <div class="card import"><h3>Récupérer de Threads HQ (Sandra) ${tag(c.proxy && c.rotation && c.sms)}</h3>
         <p class="muted">Copie le proxy, le lien de rotation et les clés SMS du CRM de Sandra, de serveur à serveur. Personne ne voit les clés.</p>
         <ol class="helpsteps"><li>Ouvre <a href="https://threads-hq-sa.netlify.app" target="_blank" rel="noopener">threads-hq-sa.netlify.app</a>, Réglages.</li><li>« Créer un code de transfert », puis Copier.</li><li>Colle-le ici, « Récupérer ».</li></ol>
         <div class="inrow"><input data-importcode placeholder="TE-..." autocomplete="off" /><button class="btn" data-act="importHq" data-wait="Récupération...">Récupérer</button></div>
       </div>
-      <div class="card"><h3>1. Proxy (le même que Sandra pour l'instant) ${tag(c.proxy)}</h3>
-        <label class="f">Proxy <small>hôte:port:utilisateur:motdepasse (ou utilisateur:mdp@hôte:port)</small></label>
-        <input data-s="proxy" value="${esc(s.proxy || "")}" placeholder="hôte:port:utilisateur:motdepasse" />
-        ${p ? `<p class="muted">Lu : hôte ${esc(p.host)} · port ${esc(p.port)} · utilisateur ${esc(p.user)}</p>` : ""}
-        <label class="f">Port SOCKS5 <small>(si le proxy a un port SOCKS5 à part ; GeeLark en SOCKS5)</small></label>
-        <input data-s="socksPort" value="${esc(s.socksPort || "")}" placeholder="ex. 17157" />
+      <div class="card"><h3>1. Proxy ${tag(c.proxy && !!p)}</h3>
+        ${pxSrc}
+        <p class="muted">Recopie les cases de ton panel proxy. Le CRM lit l'IP par le port HTTP, et donne le port SOCKS5 à Emmy pour GeeLark.</p>
+        <div class="grid3">
+          <div><label class="f">Hôte</label><input data-px="host" value="${esc(p?.host || "")}" placeholder="ex. ydgnjl5mqn.cn.fxdx.in" autocomplete="off" /></div>
+          <div><label class="f">Port HTTP</label><input data-px="port" value="${esc(p?.port || "")}" inputmode="numeric" placeholder="ex. 14953" /></div>
+          <div><label class="f">Port SOCKS5 <small>(GeeLark)</small></label><input data-px="socks" value="${esc(s.socksPort || "")}" inputmode="numeric" placeholder="ex. 17157" /></div>
+          <div><label class="f">Utilisateur</label><input data-px="user" value="${esc(p?.user || "")}" autocomplete="off" /></div>
+          <div><label class="f">Mot de passe</label><input data-px="pass" value="${esc(p?.pass || "")}" autocomplete="off" /></div>
+        </div>
+        ${s.proxy && !p ? `<div class="alert c-red">Le proxy enregistré est incomplet (« ${esc(s.proxy)} ») : remplis les 5 cases et enregistre.</div>` : ""}
         <label class="f">Lien de rotation d'IP ${tag(c.rotation)} <small>(secret)</small></label>
         <input data-sec="rotationUrl" placeholder="${c.rotation ? "déjà branché, colle pour remplacer" : "https://..."}" />
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveConn" data-wait="Enregistrement...">Enregistrer le proxy</button><button class="btn light" data-act="testIp" data-wait="Test...">Tester l'IP</button></div>
+        ${S.ipTest ? `<div class="alert ${S.ipTest.ok ? "c-green" : "c-red"}">${esc(S.ipTest.msg)}</div>` : ""}
       </div>
       <div class="card"><h3>2. Numéros et e-mails (vérifications) ${tag(c.sms)}</h3>
         <label class="f">Hero SMS : clé API ${tag(c.smsHero)} <small>(numéros + e-mails temporaires)</small></label><input data-sec="heroToken" placeholder="${c.smsHero ? "déjà branché" : "clé API Hero"}" />
@@ -961,9 +970,15 @@ const ACT = {
     });
   },
   async testIp(b) {
+    S.ipTest = null;
     await run(b, async () => {
-      const r = await api("ip");
-      toast(`IP du proxy : ${r.ip} ${r.country || ""} ${r.city || ""}`);
+      try {
+        const r = await api("ip");
+        S.ipTest = { ok: r.country === "FR", msg: `IP vue par le proxy : ${r.ip} · ${r.country || "?"} ${r.city || ""} ${r.org || ""}${r.country === "FR" ? " · OK pour GeeLark" : " · pas en France, vérifie le proxy"}` };
+      } catch (e) {
+        S.ipTest = { ok: false, msg: e.message };
+      }
+      render();
     });
   },
   // --- passage
@@ -1284,7 +1299,16 @@ const ACT = {
   },
   // --- admin
   async saveConn(b) {
-    const body = { proxy: $('[data-s="proxy"]').value.trim(), socksPort: $('[data-s="socksPort"]').value.trim() };
+    const v = (k) => ($(`[data-px="${k}"]`)?.value || "").trim();
+    let host = v("host").replace(/^(https?|socks5h?):\/\//i, "");
+    let port = v("port");
+    let user = v("user");
+    let pass = v("pass");
+    // une ligne entière collée dans « Hôte » : on la découpe
+    const whole = parseProxy(host.includes(":") ? host : "");
+    if (whole) ({ host, port, user, pass } = { host: whole.host, port: whole.port, user: whole.user || user, pass: whole.pass || pass });
+    if (!host || !/^\d{2,5}$/.test(port)) return toast("Il faut au moins l'hôte et le port HTTP (un nombre).", true);
+    const body = { proxy: [host, port, user, pass].join(":").replace(/:+$/, ""), socksPort: v("socks").replace(/\D/g, "") };
     const rot = $('[data-sec="rotationUrl"]').value.trim();
     await run(b, async () => {
       await api("settings", body);

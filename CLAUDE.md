@@ -61,3 +61,9 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 ## Récupérer les connexions de Threads HQ
 - Réglages > « Récupérer de Threads HQ » : Awen colle le code créé dans Threads HQ (Réglages > Créer un code de transfert). `import/hq` appelle `https://threads-hq-sa.netlify.app/api/transfer/pull` et range proxy + clés côté serveur. Profil IP forcé sur France.
 - Test : `dev/test-transfer.mjs` (Threads HQ local sur 8795 + Threads Emmy local sur 8796).
+
+## Proxy (31 oct., 17 h 30)
+- Réglages > Proxy : 5 cases comme le panel du fournisseur (hôte, port HTTP, port SOCKS5, utilisateur, mot de passe). Une ligne entière collée dans « Hôte » est découpée toute seule.
+- Le serveur refuse un proxy sans port (bug réel : seul l'hôte était enregistré, GeeLark n'avait ni utilisateur ni mot de passe). `currentIp` ne lit JAMAIS l'IP sans proxy : proxy vide ou incomplet = erreur claire (avant, il lisait l'IP du serveur et tout semblait marcher).
+- `settings.proxyFrom` (posé par l'import Threads HQ) : la page affiche « Même proxy que Sandra » tant que l'hôte/port/utilisateur n'ont pas changé, sinon « Proxy propre à Emmy ».
+- « Tester l'IP » : affiche l'IP, le pays et l'opérateur, vert seulement si FR.

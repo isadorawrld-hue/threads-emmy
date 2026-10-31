@@ -33,6 +33,11 @@ ok(st.configured.proxy && st.configured.rotation && st.configured.smsHero && st.
 ok(st.settings.proxy === "fr.grid.test:8000:awen:pw" && st.settings.socksPort === "17157", "proxy et port SOCKS5 identiques à Sandra");
 r = await call(BASE, "rotate", {}, em);
 ok(r.s === 200 && r.j.ip, "rotation d'IP qui marche avec le lien récupéré");
+ok(st.settings.proxyFrom && st.settings.proxyFrom.src === "hq" && st.settings.proxyFrom.host === "fr.grid.test", "proxy marqué « même que Sandra »");
+r = await call(BASE, "settings", { proxy: "emmy.proxy.test:9000:emmy:pw2" }, em);
+st = (await call(BASE, "state", null, em)).j;
+ok(st.settings.proxy.startsWith("emmy.proxy.test") && st.settings.proxyFrom.host === "fr.grid.test", "nouveau proxy d'Emmy : différent de celui de Sandra");
+
 r = await call(BASE, "import/hq", { code, url: HQ }, em);
 ok(r.s === 403, "le même code ne marche qu'une fois");
 r = await call(BASE, "sms/prices", null, em);
