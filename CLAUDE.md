@@ -51,7 +51,7 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 - Sous chaque texte à copier : son sens en thaï. Page « แปลภาษา » : thaï vers FR/EN et l'inverse. Les erreurs du serveur (en français) sont traduites pour Emmy.
 
 ## Sécurité (non négociable)
-- Repo PRIVÉ, mais aucun secret dans le code quand même : proxy, lien de rotation, clés SMS se collent dans Réglages.
+- Repo PUBLIC (Netlify gratuit ne déploie un repo privé que pour les commits du compte AwenTarget). Donc AUCUN secret dans le code : proxy, lien de rotation, clés SMS se collent dans Réglages. Site : https://threads-emmy.netlify.app
 - Le navigateur ne relit jamais les secrets. Emmy (rôle VA) ne voit ni Réglages, ni Journal, ni Accès.
 
 ## Déploiement
