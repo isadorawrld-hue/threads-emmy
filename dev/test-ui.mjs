@@ -21,7 +21,7 @@ const adm = (await call("login", { pin: "1234", name: "Awen" })).token;
 await call("settings", { proxy: "fr.proxy-grid.test:8000:awen_user:secretpw", socksPort: "17157" }, adm);
 await call("secrets", { rotationUrl: "https://rotate.test/go", heroToken: "HERO_TEST", spKey: "SP_TEST" }, adm);
 await call("users", { name: "Emmy", pin: "5678", role: "va" }, adm);
-await call("stock/import", { text: "lea_x99:pw123:lea@outlook.com:mailpw!:JBSWY3DPEHPK3PXP\nmia.cool pw9 mia@gmail.com Mpw9 JBSW Y3DP EHPK 3PXP\nnina.rose pw5 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ" }, adm);
+await call("stock/import", { text: "lea_x99:pw123:lea@outlook.com:mailpw!:JBSWY3DPEHPK3PXP\nmia.cool pw9 mia@gmail.com Mpw9 JBSW Y3DP EHPK 3PXP\nnina.rose pw5 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ\nzoe.lune pw6 JBSWY3DPEHPK3PXP" }, adm);
 
 const browser = await chromium.launch();
 // photos de test (dessinées dans le navigateur)
@@ -87,21 +87,33 @@ for (let n = 1; n <= 2; n++) {
   await page.waitForSelector("main .alert.c-green");
   ok((await page.textContent("main")).includes(user), `compte @${user} ajouté`);
 }
-// 3e compte : il ne marche pas
+// 3e compte : mauvais mot de passe = scam, un autre compte arrive tout de suite sur le même téléphone
 await click('[data-act="wizReset"]');
 await click('main [data-act="rotate"]');
 await page.waitForSelector(".alert.c-green");
 await click('[data-act="wizNext"]');
+ok((await page.locator(".langip img").count()) === 1, "étape GeeLark : rappel « Cloud phone language : Based on IP » avec l'image");
 await page.fill('[data-f="geelarkProfile"]', "emmy-03");
 await click('[data-act="wizNext"]');
 await page.waitForTimeout(800);
+const bad = await page.inputValue('[data-f="pseudo"]');
+await click('[data-act="scamAsk"]');
+await page.waitForSelector('[data-act="scamGo"]');
+await click('[data-act="scamGo"][data-r="r_pass"]');
+await page.waitForFunction((u) => document.querySelector('[data-f="pseudo"]') && document.querySelector('[data-f="pseudo"]').value && document.querySelector('[data-f="pseudo"]').value !== u, bad);
+const good = await page.inputValue('[data-f="pseudo"]');
+ok(good && good !== bad && (await page.textContent(".stepnum")).includes("3"), `scam : @${bad} remplacé tout de suite par @${good}, toujours à l'étape 3`);
+let st = await call("state", null, adm);
+ok(st.stock.scam === 1 && !st.geelarkBurned.includes("emmy-03"), "scam : rangé dans Scam, téléphone GeeLark PAS grillé");
+await shot("06b-scam-nouveau-compte");
+// ce compte-là demande une vérification impossible : échec normal, téléphone grillé
 await click('[data-act="wizNext"]');
 await click('[data-act="wizFail"]');
 await page.waitForSelector('[data-act="wizFailGo"]');
-await click('[data-act="wizFailGo"][data-r="r_2fa"]');
+await click('[data-act="wizFailGo"][data-r="r_verif"]');
 await page.waitForSelector("main .alert.c-green");
-let st = await call("state", null, adm);
-ok(st.stock.rate === 1 && st.geelarkBurned.includes("emmy-03"), "compte raté : noté dans le stock, téléphone GeeLark grillé");
+st = await call("state", null, adm);
+ok(st.stock.rate === 1 && st.geelarkBurned.includes("emmy-03"), "vérification impossible : compte raté, téléphone GeeLark grillé");
 
 // --- journée : passage sur un compte
 await click('[data-tab="today"]');

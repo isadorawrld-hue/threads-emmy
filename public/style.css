@@ -500,3 +500,8 @@ label.f { color: var(--ink); }
   .mnav .nav.on em { background: #fff; color: #e0218a; }
 }
 .login-card .langs.center { display: flex; width: max-content; }
+.langip { display: grid; gap: 10px; }
+.langip img { max-width: 260px; border-radius: 12px; border: 1px solid #ffd6e7; background: #fff; }
+.scambox { margin-top: 16px; padding: 12px 14px; border: 1px dashed #fecdd3; border-radius: 14px; background: #fff7f8; }
+.scambox p { margin: 0 0 8px; }
+.scamlist { white-space: pre-wrap; background: #fff7f8; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px; font-size: 13px; }

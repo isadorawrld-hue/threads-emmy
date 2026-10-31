@@ -542,6 +542,7 @@ const VIEWS = {
         ${!p.host || !p.port ? `<div class="alert c-red">${t("a1noconf")}</div>` : ""}
         <ol class="helpsteps">${tl("a2steps", { type, c: country }).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
         ${copyLine(t("pType"), type)}${copyLine(t("pHost"), p.host)}${copyLine(t("pPort"), socks || p.port)}${copyLine(t("pUser"), p.user)}${copyLine(t("pPass"), p.pass)}
+        <div class="alert c-yellow langip"><b>${t("cloudLang")}</b><img src="/help/cloud-phone-language.png" alt="Cloud phone language : Based on IP" /></div>
         <label class="f">${t("phoneName")}</label><input data-f="geelarkProfile" placeholder="${t("phoneNamePh")}" value="${esc(w.f.geelarkProfile || "")}" />
         <details class="card sop" style="margin-top:14px"><summary>${t("watchTuto")}</summary>${videoEmbed("/help/geelark.mp4")}</details>
         ${nav()}`;
@@ -557,6 +558,7 @@ const VIEWS = {
         <label class="f">${t("email")}</label><div class="inrow"><input data-f="email" value="${esc(w.f.email || "")}" autocomplete="off" /><button class="btn sm light" data-act="copyField" data-cf="email">${t("copy")}</button></div>
         <label class="f">${t("emailPass")}</label><div class="inrow"><input data-f="emailPassword" value="${esc(w.f.emailPassword || "")}" autocomplete="off" /><button class="btn sm light" data-act="copyField" data-cf="emailPassword">${t("copy")}</button></div>
         ${w.f.email ? `<p><a class="btn sm light" href="${esc(webmail(w.f.email))}" target="_blank" rel="noopener">${t("openMail")}</a> <small class="muted">${t("openMailHint")}</small></p>` : ""}
+        ${w.f.stockId ? `<div class="scambox"><p class="muted">${t("scamHint")}</p><button class="btn bad" data-act="scamAsk">${t("scamBtn")}</button></div>` : ""}
         <details class="card" style="margin-top:14px" ${S.data.sms || S.data.emailAct ? "open" : ""}><summary>${t("verifAsk")}</summary>${codeBlocks()}</details>
         <div class="row" style="margin-top:18px"><button class="btn light" data-act="wizBack">${t("back")}</button>${w.f.stockId ? `<button class="btn ghost" data-act="stockRelease">${t("release")}</button>` : ""}<span class="spacer"></span><button class="btn" data-act="wizNext">${t("next")}</button></div>`;
     } else if (w.step === 4) {
@@ -669,9 +671,12 @@ const VIEWS = {
   stock() {
     const st = S.data.stock || {};
     const list = st.list || [];
-    const lbl = { dispo: A("Dispo"), pris: A("En cours"), utilise: A("Utilisé"), rate: A("Raté") };
+    const lbl = { dispo: A("Dispo"), pris: A("En cours"), utilise: A("Utilisé"), rate: A("Raté"), scam: A("Scam") };
+    const scams = list.filter((x) => x.status === "scam");
+    const scamTxt = scams.map((x) => [x.order ? "#" + x.order : "", x.user, x.reason].filter(Boolean).join(" · ")).join("\n");
     return `<h2>${A("Comptes achetés")}</h2><p class="lead">${A("Colle la liste reçue du vendeur (ou glisse le fichier .txt). Emmy les prend un par un dans « Ajouter un compte », tout se remplit seul.")}</p>
-      <div class="stats"><div class="stat"><b>${st.dispo || 0}</b><span><i class="dot c-green"></i>${A("dispo")}</span></div><div class="stat"><b>${st.pris || 0}</b><span><i class="dot c-blue"></i>${A("en cours")}</span></div><div class="stat"><b>${st.utilise || 0}</b><span>${A("utilisés")}</span></div><div class="stat"><b>${st.rate || 0}</b><span><i class="dot c-red"></i>${A("ratés")}</span></div></div>
+      <div class="stats"><div class="stat"><b>${st.dispo || 0}</b><span><i class="dot c-green"></i>${A("dispo")}</span></div><div class="stat"><b>${st.pris || 0}</b><span><i class="dot c-blue"></i>${A("en cours")}</span></div><div class="stat"><b>${st.utilise || 0}</b><span>${A("utilisés")}</span></div><div class="stat"><b>${st.rate || 0}</b><span><i class="dot c-red"></i>${A("ratés")}</span></div><div class="stat"><b>${st.scam || 0}</b><span><i class="dot c-red"></i>${A("scam")}</span></div></div>
+      ${scams.length ? `<div class="card"><h3>${A("Comptes scam (à réclamer au vendeur)")}</h3><pre class="scamlist">${esc(scamTxt)}</pre><button class="btn light" data-act="copy" data-v="${esc(scamTxt)}">${A("Copier la liste pour le vendeur")}</button></div>` : ""}
       <div class="card"><h3>${A("Importer")}</h3>
         <p class="muted">${A("Une ligne par compte. Formats reconnus : identifiant mdp CLE2FA, identifiant:mdp:email:mdpmail:CLE2FA, identifiant mdp email mdpmail. Tab, espace, « : », « ; » ou « | ». Les lignes de pub sont ignorées, les doublons aussi.")}</p>
         <textarea data-stocktext rows="6" placeholder="julie.paris12	Mdp123!	julie@outlook.com	MailMdp	JBSW Y3DP EHPK 3PXP"></textarea>
@@ -746,7 +751,7 @@ const LOGS = {
   compte_cree: "Compte ajouté", creation_ratee: "Ajout raté", action_faite: "Action faite", action_annulee: "Action annulée", statut_change: "Statut changé",
   numero_achete: "Numéro pris", code_recu: "Code reçu", numero_annule: "Numéro annulé", email_achete: "E-mail pris", email_annule: "E-mail annulé",
   compte_modifie: "Compte modifié", compte_supprime: "Compte supprimé", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock",
+  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock", stock_scam: "Compte scam",
 };
 function logDetails(l) {
   const out = [];
@@ -1173,8 +1178,35 @@ const ACT = {
     const r = ["r_pass", "r_2fa", "r_verif", "r_ban", "r_other"];
     modal(`<h3>${t("a4reason")}</h3><div class="pbbtns">${r.map((k) => `<button class="btn light" data-act="wizFailGo" data-r="${k}">${t(k)}</button>`).join("")}</div><label class="f">${t("pb_note")}</label><input data-pbnote />`);
   },
+  scamAsk() {
+    readWiz();
+    const r = ["r_pass", "r_2fa", "r_ban"];
+    modal(`<h3>${t("scamWhy")}</h3><div class="pbbtns">${r.map((k) => `<button class="btn light" data-act="scamGo" data-r="${k}">${t(k)}</button>`).join("")}</div>`);
+  },
+  async scamGo(b) {
+    const w = S.wiz;
+    await run(b, async () => {
+      // raison en anglais : la liste scam part chez le vendeur
+      const r = await api("stock/scam", { id: w.f.stockId, reason: L[b.dataset.r][1] });
+      closeModal();
+      // même téléphone GeeLark, même IP : on garde l'étape 3 et on remplit le compte suivant
+      const keep = { geelarkProfile: w.f.geelarkProfile };
+      if (r.next) {
+        const it = r.next;
+        w.f = { ...keep, stockId: it.id, stockOrder: it.order || "", pseudo: it.user, password: it.pass, totp: it.totp || "", email: it.email || "", emailPassword: it.emailPass || "" };
+        toast(t("scamDone", { p: it.user }));
+      } else {
+        w.f = keep;
+        toast(t("scamEmpty"), true);
+      }
+      w.step = 3;
+      await refresh();
+    });
+  },
   async wizFailGo(b) {
     const w = S.wiz;
+    // la faute du vendeur (mauvais identifiants, 2FA fausse, compte déjà banni) : scam + compte suivant sur le même téléphone
+    if (w.f.stockId && ["r_pass", "r_2fa", "r_ban"].includes(b.dataset.r)) return ACT.scamGo(b);
     const reason = [L[b.dataset.r][2], $("[data-pbnote]")?.value || ""].filter(Boolean).join(" : ");
     await run(b, async () => {
       await api("accounts/failed", { bought: true, reason: `@${w.f.pseudo || "?"} : ${reason}`, geelarkProfile: w.f.geelarkProfile || "", stockId: w.f.stockId || undefined });

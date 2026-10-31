@@ -67,3 +67,11 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 - Réglages > Proxy : 5 cases comme le panel du fournisseur (hôte, port HTTP, port SOCKS5, utilisateur, mot de passe). Une ligne entière collée dans « Hôte » est découpée toute seule.
 - Le serveur refuse un proxy sans port (bug réel : seul l'hôte était enregistré, GeeLark n'avait ni utilisateur ni mot de passe). `currentIp` ne lit JAMAIS l'IP sans proxy : proxy vide ou incomplet = erreur claire (avant, il lisait l'IP du serveur et tout semblait marcher).
 - « Tester l'IP » : affiche l'IP, le pays et l'opérateur, vert seulement si FR.
+
+## Compte scam (31 oct., 18 h)
+- Étape 3 de l'ajout (compte du stock) : bouton « บัญชีเสีย (Scam) » (mot de passe faux, 2FA refusée, compte déjà banni). `stock/scam` range le compte en statut `scam` (raison en anglais, pour le vendeur) et donne TOUT DE SUITE le compte suivant du stock. Le téléphone GeeLark et l'IP restent : la faute vient du vendeur, pas du téléphone (il n'est PAS grillé).
+- « ใช้ไม่ได้ » à l'étape 4 avec ces 3 raisons = même chose (scam + compte suivant). Vérification impossible / autre = échec classique (téléphone grillé, compte « raté »).
+- Admin > Comptes achetés : compteur scam + liste « à réclamer au vendeur » (n° de commande · identifiant · raison) avec bouton Copier. Un compte scam ne revient jamais par un nouvel import.
+
+## Étape GeeLark : langue du téléphone
+- Après les cases du proxy, encadré jaune avec l'image `public/help/cloud-phone-language.png` : « Cloud phone language » (et Location) sur « Based on IP ». Demandé par Awen.

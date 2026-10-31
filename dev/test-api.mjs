@@ -110,7 +110,20 @@ r = await call("settings", { program: { perDay: 5, gapMin: 60 }, langFr: 70 }, a
 r = await call("settings", { comments: { fr: ["a", "a", " b "], en: [] } }, adm);
 ok(JSON.stringify(r.j.comments.fr) === '["a","b"]', "banque nettoyée (doublons, espaces)");
 
+// --- compte scam : remplacé tout de suite par le suivant du stock
+await call("stock/import", { text: "scam.one pw1 JBSWY3DPEHPK3PXP\ngood.two pw2 JBSWY3DPEHPK3PXP" }, adm);
+let it1 = (await call("stock/take", {}, emmy)).j;
+r = await call("stock/scam", { id: it1.id, reason: "Mot de passe faux" }, emmy);
+ok(r.s === 200 && r.j.next && r.j.next.user === "good.two" && r.j.next.totp, "scam : compte suivant donné tout de suite (" + (r.j.next || {}).user + ")");
+r = await call("stock/scam", { id: it1.id }, emmy);
+ok(r.s === 400, "scam : le même compte ne peut pas être scam deux fois");
+r = await call("stock/scam", { id: r.j.next ? r.j.next.id : (await call("stock/take", {}, emmy)).j.id, reason: "2FA" }, emmy);
+ok(r.s === 200 && r.j.next === null, "scam sans stock restant : next vide");
+r = await call("stock/import", { text: "scam.one pw1 JBSWY3DPEHPK3PXP" }, adm);
+ok(r.j.added === 0, "un compte scam ne revient pas par un nouvel import");
 s = (await call("state", null, adm)).j;
+ok(s.stock.scam === 2 && s.stock.list.find((x) => x.user === "scam.one").reason === "Mot de passe faux", "admin : 2 comptes scam avec la raison");
+ok(s.logs.some((l) => l.action === "stock_scam"), "journal : scam tracé");
 ok(s.stock.utilise === 4 && s.stock.dispo === 0, "stock : 4 utilisés");
 ok(s.logs.some((l) => l.action === "action_faite") && s.logs.some((l) => l.action === "statut_change"), "journal : actions et statuts tracés");
 
