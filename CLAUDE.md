@@ -84,3 +84,4 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 ## Comptes à suivre pendant le warm-up (1er nov.)
 - Liste donnée par Awen (19 comptes) dans `lib/seeds.mjs` (`FOLLOW_ACCOUNTS`), modifiable dans Textes et photos (`settings.followBank`, `followPerWarmup` = 4).
 - Étape 5 : le CRM tire 4 comptes, les moins suivis par les autres comptes d'abord (tirage gardé dans le navigateur, `follow_<id>`), avec boutons Copier et la marche à suivre (loupe, coller, 1-2 likes, Suivre). À la fin du warm-up, la liste est notée sur le compte (`acc.follows`) : jamais la même liste partout.
+- « Rendre au stock » remet le compte à la FIN de la file (avant, le « Prendre » suivant redonnait le même compte). Même règle dans Threads HQ (1er nov.).
