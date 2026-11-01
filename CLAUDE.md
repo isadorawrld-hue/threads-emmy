@@ -7,7 +7,7 @@ Lis ce fichier en entier avant de toucher au code.
 - Elle ne crée pas de compte : elle les ajoute (IP neuve, téléphone GeeLark + proxy, connexion avec 2FA), puis les réchauffe.
 - Programme de warm-up : 5 actions par jour et par compte. Semaine 1 = commentaires texte. Semaine 2 = texte + photo. Semaine 3 = un post tous les 2 jours + commentaires. Semaine 4+ = 1 post/jour + commentaires.
 - 70 % des comptes en français, 30 % en anglais (langue attribuée toute seule à l'ajout).
-- TOUTE l'interface (Emmy ET pages admin) en thaï parlé (pas formel), boutons EN et FR. Pages admin : `A("phrase française")` traduite par `ADM` dans i18n.js. Aucun texte en dur. Test : `dev/test-admin-th.mjs`.
+- TOUTE l'interface (Emmy ET pages admin) en thaï parlé (pas formel), boutons EN et FR. Pages admin : `A("phrase française")` traduite par `ADM` dans i18n.js. Aucun texte en dur. Tests : `dev/test-admin-th.mjs` et `dev/test-langs.mjs` (17 pages × 3 langues, à lancer après test-ui).
 - Copie allégée de Threads HQ (repo `threads-hq`, CRM de la VA Sandra) : même serveur, sans Metricool dans l'interface.
 
 ## Où sont les choses
