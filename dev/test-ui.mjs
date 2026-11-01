@@ -90,6 +90,8 @@ for (let n = 1; n <= 2; n++) {
   ok((await page.textContent(".stepnum")).includes("5"), `@${user} : étape 5, warm-up affiché`);
   let st0 = await call("state", null, adm);
   ok(st0.accounts.find((a) => a.pseudo === user).needWarm10 === true, `@${user} : pas encore dans la file (warm-up à faire)`);
+  const fl = await page.$$eval(".followbox .copyline .v", (els) => els.map((e) => e.textContent.trim()));
+  ok(fl.length === 4, `warm-up : 4 comptes à suivre affichés (${fl.join(", ")})`);
   if (n === 1) await shot("06c-warmup-10min");
   await click('[data-act="warmStart"]');
   await page.waitForTimeout(3600);
@@ -98,6 +100,11 @@ for (let n = 1; n <= 2; n++) {
   await click('[data-act="warmFinish"]');
   await page.waitForSelector("main .alert.c-green");
   ok((await page.textContent("main")).includes(user), `compte @${user} ajouté après le warm-up`);
+}
+{
+  const st1 = await call("state", null, adm);
+  const [f1, f2] = st1.accounts.slice(0, 2).map((a) => a.follows || []);
+  ok(f1.length === 4 && f2.length === 4 && f1.every((u) => !f2.includes(u)), "comptes suivis notés, et le 2e compte n'a pas la même liste que le 1er");
 }
 // 3e compte : mauvais mot de passe = scam, un autre compte arrive tout de suite sur le même téléphone
 await click('[data-act="wizReset"]');

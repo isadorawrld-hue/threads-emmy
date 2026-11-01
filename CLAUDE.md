@@ -80,3 +80,7 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 - Demandé par Awen (« il doit y être », comme chez Sandra). Étape 5 de l'ajout : chrono `settings.warmupMinutes` (10 par défaut, réglable dans Réglages > Programme), même téléphone, même IP, scroll + 5-10 likes + 3-5 abonnements, zéro post / lien / changement de profil, 3 cases à cocher.
 - Le compte est créé avec `needWarm10: true` : il n'entre PAS dans la file du jour tant que `accounts/:id/warm10` n'est pas validé (refusé avant la fin du chrono). Le départ du chrono est gardé dans le navigateur (`warm10_<id>`) : un rechargement ne le remet pas à zéro.
 - Warm-up pas fini (page fermée) : section « ต้องวอร์ม 10 นาทีก่อน » dans Aujourd'hui, bouton pour le reprendre.
+
+## Comptes à suivre pendant le warm-up (1er nov.)
+- Liste donnée par Awen (19 comptes) dans `lib/seeds.mjs` (`FOLLOW_ACCOUNTS`), modifiable dans Textes et photos (`settings.followBank`, `followPerWarmup` = 4).
+- Étape 5 : le CRM tire 4 comptes, les moins suivis par les autres comptes d'abord (tirage gardé dans le navigateur, `follow_<id>`), avec boutons Copier et la marche à suivre (loupe, coller, 1-2 likes, Suivre). À la fin du warm-up, la liste est notée sur le compte (`acc.follows`) : jamais la même liste partout.

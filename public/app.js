@@ -572,6 +572,7 @@ const VIEWS = {
       const a = accById(w.accId);
       if (!a) { S.wiz = { step: 1, f: {} }; return VIEWS.add(); }
       const m = warmMin();
+      const follows = followsFor(a);
       const start = Number(lsGet("warm10_" + a.id) || 0);
       const end = start + m * 60e3;
       const over = start && Date.now() >= end;
@@ -580,6 +581,7 @@ const VIEWS = {
         ${a.geelarkProfile ? copyLine(t("geelark"), a.geelarkProfile) : ""}
         <div class="timer" data-warmend="${start ? end : ""}">${start ? "" : `${String(Math.floor(m)).padStart(2, "0")}:00`}</div>
         ${start ? "" : `<button class="btn accent" data-act="warmStart" data-id="${a.id}">${t("startTimer", { m })}</button>`}
+        ${follows.length ? `<div class="card followbox"><h3>${t("followTitle", { n: follows.length })}</h3><p class="muted">${t("followHow")}</p>${follows.map((u) => copyLine("@", u)).join("")}</div>` : ""}
         <div class="checklist" style="margin-top:14px">${["ck1", "ck2", "ck3"].map((k) => `<label><input type="checkbox" data-warmck /> ${t(k)}</label>`).join("")}</div>
         <div class="row" style="margin-top:18px"><span class="spacer"></span><button class="btn ok" data-act="warmFinish" data-id="${a.id}" data-wait="${t("wait")}" ${over ? "" : "disabled"}>${t("warmDone")}</button></div>
         ${over ? "" : `<p class="muted">${t("warmWait")}</p>`}`;
@@ -678,6 +680,10 @@ const VIEWS = {
         <h3>${A("Posts (semaine 3 et plus)")}</h3>
         ${area("captions.fr", A("Français"))}
         ${area("captions.en", A("Anglais"))}
+        <h3>${A("Comptes à suivre pendant le warm-up")}</h3>
+        <p class="muted">${A("Le CRM en donne quelques-uns à chaque nouveau compte, les moins suivis d'abord : jamais la même liste partout.")}</p>
+        <label class="f">${A("Comptes à suivre par warm-up")}</label><input type="number" min="0" max="10" data-followper value="${esc(s.followPerWarmup ?? 4)}" style="max-width:120px" />
+        <label class="f">${A("Comptes à suivre pendant le warm-up")} <small>(${A("{n} · un pseudo par ligne", { n: (s.followBank || []).length })})</small></label><textarea data-followbank rows="8">${esc((s.followBank || []).join("\n"))}</textarea>
         <div class="row" style="margin-top:12px"><button class="btn" data-act="saveBanks" data-wait="${t("wait")}">${A("Enregistrer les textes")}</button></div>
       </div>
       <div class="card"><h3>${A("Photos pour les commentaires (semaine 2 et plus)")}</h3>
@@ -1208,7 +1214,8 @@ const ACT = {
     if ([...document.querySelectorAll("[data-warmck]")].some((x) => !x.checked)) return toast(t("warmWait"), true);
     const id = b.dataset.id;
     await run(b, async () => {
-      const a = await api(`accounts/${id}/warm10`, { startedAt: Number(lsGet("warm10_" + id) || 0) });
+      const a = await api(`accounts/${id}/warm10`, { startedAt: Number(lsGet("warm10_" + id) || 0), follows: followsFor(accById(id)) });
+      lsSet("follow_" + id, "");
       lsSet("warm10_" + id, "");
       S.wiz = { step: 1, f: {}, done: t("added", { p: a.pseudo }) };
       await refresh();
@@ -1408,7 +1415,7 @@ const ACT = {
   async saveBanks(b) {
     const get = (k) => ($(`[data-bank="${k}"]`).value || "").split("\n").map((x) => x.trim()).filter(Boolean);
     await run(b, async () => {
-      await api("settings", { comments: { fr: get("comments.fr"), en: get("comments.en") }, captions: { fr: get("captions.fr"), en: get("captions.en") } });
+      await api("settings", { comments: { fr: get("comments.fr"), en: get("comments.en") }, captions: { fr: get("captions.fr"), en: get("captions.en") }, followBank: ($("[data-followbank]").value || "").split(/[\n,]+/).map((x) => x.trim()).filter(Boolean), followPerWarmup: Number($("[data-followper]").value) });
       await refresh();
       toast(A("Textes enregistrés"));
     });
@@ -1455,6 +1462,23 @@ async function ipCheck(prefix) {
   }
 }
 const warmMin = () => Number(S.data?.settings?.warmupMinutes ?? 10);
+// comptes à suivre pendant le warm-up : les moins suivis par les autres comptes d'abord, tirés une fois puis gardés
+function followsFor(a) {
+  const saved = lsGet("follow_" + a.id);
+  if (saved) return saved.split(",").filter(Boolean);
+  const bank = S.data.settings.followBank || [];
+  const n = Math.min(bank.length, Number(S.data.settings.followPerWarmup ?? 4));
+  const used = {};
+  for (const x of S.data.accounts) for (const f of x.follows || []) used[f.toLowerCase()] = (used[f.toLowerCase()] || 0) + 1;
+  const pick = bank
+    .filter((u) => u.toLowerCase() !== String(a.pseudo).toLowerCase())
+    .map((u) => ({ u, k: (used[u.toLowerCase()] || 0) + Math.random() }))
+    .sort((x, y) => x.k - y.k)
+    .slice(0, n)
+    .map((x) => x.u);
+  lsSet("follow_" + a.id, pick.join(","));
+  return pick;
+}
 // chrono du warm-up (le départ est gardé dans le navigateur : un rechargement ne remet pas à zéro)
 setInterval(() => {
   const el = document.querySelector("[data-warmend]");

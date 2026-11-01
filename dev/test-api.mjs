@@ -42,6 +42,7 @@ let s = (await call("state", null, emmy)).j;
 ok(!s.logs && !s.users, "Emmy ne voit ni journal ni accès");
 ok(s.settings.comments.fr.length > 100 && s.settings.comments.en.length > 60, "banques de commentaires FR/EN chargées");
 ok(s.settings.program.perDay === 5 && s.settings.timezone === "Asia/Bangkok", "programme 5/jour, fuseau Bangkok");
+ok(s.settings.followBank.length === 19 && s.settings.followBank.includes("Mae_fortunio") && s.settings.followPerWarmup === 4, "19 comptes à suivre pendant le warm-up, 4 par compte");
 ok(s.stock.dispo === 4, "4 comptes dispo en stock");
 
 // --- ajout de 4 comptes : langues 70/30
@@ -116,6 +117,8 @@ ok(!!r.j["mdr trop vrai"], "traduction vers le thaï : " + r.j["mdr trop vrai"])
 r = await call("settings", { program: { perDay: 99, gapMin: 45 }, langFr: 150 }, adm);
 ok(r.j.program.perDay === 20 && r.j.program.gapMin === 45 && r.j.langFr === 100, "programme borné (20 max, 100 % max)");
 r = await call("settings", { program: { perDay: 5, gapMin: 60 }, langFr: 70 }, adm);
+r = await call("settings", { followBank: ["@Ninactr8", "Ninactr8", "pas valide !", "Em.carter10"] }, adm);
+ok(JSON.stringify(r.j.followBank) === '["Ninactr8","Em.carter10"]', "liste à suivre nettoyée (@, doublons, pseudos invalides)");
 r = await call("settings", { comments: { fr: ["a", "a", " b "], en: [] } }, adm);
 ok(JSON.stringify(r.j.comments.fr) === '["a","b"]', "banque nettoyée (doublons, espaces)");
 

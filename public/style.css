@@ -505,3 +505,4 @@ label.f { color: var(--ink); }
 .scambox { margin-top: 16px; padding: 12px 14px; border: 1px dashed #fecdd3; border-radius: 14px; background: #fff7f8; }
 .scambox p { margin: 0 0 8px; }
 .scamlist { white-space: pre-wrap; background: #fff7f8; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px; font-size: 13px; }
+.followbox { background: #fff7fb; } .followbox h3 { margin-top: 0; }
