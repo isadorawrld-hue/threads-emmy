@@ -85,3 +85,9 @@ Ne dis jamais « c'est fait » sans les deux tests au vert.
 - Liste donnée par Awen (19 comptes) dans `lib/seeds.mjs` (`FOLLOW_ACCOUNTS`), modifiable dans Textes et photos (`settings.followBank`, `followPerWarmup` = 4).
 - Étape 5 : le CRM tire 4 comptes, les moins suivis par les autres comptes d'abord (tirage gardé dans le navigateur, `follow_<id>`), avec boutons Copier et la marche à suivre (loupe, coller, 1-2 likes, Suivre). À la fin du warm-up, la liste est notée sur le compte (`acc.follows`) : jamais la même liste partout.
 - « Rendre au stock » remet le compte à la FIN de la file (avant, le « Prendre » suivant redonnait le même compte). Même règle dans Threads HQ (1er nov.).
+
+## Page Selfies (14 nov., demandée par Awen)
+- Menu « เซลฟี่ » (2e entrée, Emmy et admin) : toutes les photos (posts + commentaires) sans ouvrir de compte, les jamais utilisées en premier. Filtres : toutes, jamais utilisées, pour les posts, pour les commentaires. Bouton « ดาวน์โหลดรูป » (téléchargement direct).
+- Sous chaque photo : sur quels comptes elle est déjà passée, et « Postée sur quel compte ? » + « โพสต์แล้ว » = route `accounts/:id/photo {mediaId}` qui range la photo dans `acc.photos` (sans compter d'action du jour). `usage()` et `pickMedia` lisent aussi `acc.photos` : la même photo ne revient jamais sur ce compte, même via le passage.
+- Banque du 14 nov. : 50 selfies d'Amst (Clara) générées sur Higgsfield (Soul 2.0, perso « Enigmatic Elegance »), 25 posts + 25 commentaires, envoyées par `media/upload`.
+- Tests : API « selfie », UI captures 16b-16c, `test-langs` couvre la page.

@@ -242,6 +242,26 @@ await page.waitForSelector(".trout");
 ok((await page.textContent(".trout")).length > 0, "traduction thaï → français");
 await shot("16-traduire");
 
+// --- page Selfies : toutes les photos sans ouvrir de compte, « Postée » note la photo sur le compte
+await click('[data-tab="selfies"]');
+await page.waitForSelector(".selfies .selfie img");
+ok((await page.$$(".selfies .selfie")).length === 3, "selfies : les 3 photos visibles");
+ok(!!(await page.$('.selfie a[download]')), "selfies : bouton télécharger");
+await shot("16b-selfies");
+{
+  const sel = await page.$("[data-selfacc]");
+  const opt = await sel.$$eval("option", (o) => o.map((x) => x.value).filter(Boolean));
+  if (opt.length) {
+    await sel.selectOption(opt[0]);
+    await page.click('.selfie [data-act="selfMark"]');
+    await page.waitForFunction(() => /@/.test(document.querySelector(".selfie figcaption")?.textContent || "") || [...document.querySelectorAll(".selfie figcaption small")].length > 0);
+    ok((await page.$$(".selfie figcaption small")).length >= 1, "selfies : « Postée » affiche le compte sous la photo");
+  } else ok(false, "selfies : aucun compte dans la liste");
+}
+await page.click('[data-act="selfF"][data-v="new"]');
+ok((await page.$$(".selfies .selfie")).length === 2, "selfies : filtre « jamais utilisées »");
+await shot("16c-selfies-filtre");
+
 // --- guide + langues
 await click('[data-tab="guide"]');
 await page.waitForSelector(".sop");

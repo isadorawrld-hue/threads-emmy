@@ -7,7 +7,7 @@ const THAI = /[฀-๿]/;
 const FR = /\b(Réglages|Enregistrer|Suivi|Comptes achetés|Mot de passe|Utilisateur|Hôte|Programme|Accès|branché|à faire|Importer|Supprimer|Commentaires|Statut|Ajouter|Aujourd'hui|compte suivant|Étape)\b/;
 const b = await chromium.launch();
 let fails = 0;
-for (const [pin, tabs] of [["5678", ["today", "accounts", "add", "verify", "tr", "guide"]], ["1234", ["today", "accounts", "add", "verify", "tr", "guide", "suivi", "contenu", "stock", "reglages", "journal"]]]) {
+for (const [pin, tabs] of [["5678", ["today", "selfies", "accounts", "add", "verify", "tr", "guide"]], ["1234", ["today", "selfies", "accounts", "add", "verify", "tr", "guide", "suivi", "contenu", "stock", "reglages", "journal"]]]) {
   const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
   await p.goto(BASE);
   await p.evaluate(() => localStorage.clear());

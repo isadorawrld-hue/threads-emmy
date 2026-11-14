@@ -329,6 +329,8 @@ function usage() {
     if (x.t) tx[x.t] = (tx[x.t] || 0) + 1;
     if (x.m) md[x.m] = (md[x.m] || 0) + 1;
   }
+  // selfies postés depuis la page Selfies (hors passage)
+  for (const a of S.data.accounts) for (const m of a.photos || []) md[m] = (md[m] || 0) + 1;
   return { tx, md };
 }
 function pickText(a, kind, avoid = []) {
@@ -346,7 +348,7 @@ function pickText(a, kind, avoid = []) {
 function pickMedia(a, kind, avoid = []) {
   const g = kind === "post" ? "posts" : "commentaires";
   const list = (S.data.media || []).filter((m) => m.group === g);
-  const mine = new Set((a.acts || []).map((x) => x.m).filter(Boolean));
+  const mine = new Set([...(a.acts || []).map((x) => x.m).filter(Boolean), ...(a.photos || [])]);
   const { md } = usage();
   let pool = list.filter((m) => !mine.has(m.id) && !avoid.includes(m.id));
   if (!pool.length) pool = list.filter((m) => !avoid.includes(m.id));
@@ -381,6 +383,7 @@ function parseProxy(p) {
 const ICONS = {
   today: '<path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   accounts: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  selfies: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   add: '<path d="M12 5v14M5 12h14"/>',
   verify: '<rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18.5h2"/>',
   tr: '<path d="M4 5h9M8.5 3v2M6 5c0 4 3 7 6 8M11 5c-1 4-4 7-7 8M13 21l4-9 4 9M14.5 18h5"/>',
@@ -403,6 +406,7 @@ function render() {
   const groups = [
     [t("t_work"), [
       ["today", t("t_today"), q.filter((x) => x.ready).length],
+      ["selfies", t("t_selfies"), 0],
       ["accounts", t("t_accounts"), problems],
       ["add", t("t_add"), 0],
       ["verify", t("t_verify"), waitingCode() ? 1 : 0],
@@ -616,6 +620,32 @@ const VIEWS = {
       </div>`;
   },
 
+  selfies() {
+    const all = S.data.media || [];
+    const { md } = usage();
+    const f = S.selfF || "all";
+    const usedOn = (id) => S.data.accounts.filter((a) => (a.acts || []).some((x) => x.m === id) || (a.photos || []).includes(id)).map((a) => a.pseudo);
+    let list = all.filter((m) => m.kind !== "pfp");
+    if (f === "posts" || f === "commentaires") list = list.filter((m) => m.group === f);
+    if (f === "new") list = list.filter((m) => !md[m.id]);
+    list = list.slice().sort((a, b) => (md[a.id] || 0) - (md[b.id] || 0) || (a.at < b.at ? -1 : 1));
+    const alive = S.data.accounts.filter((a) => ["warmup", "actif"].includes(a.status));
+    const chip = (k, l) => `<button class="chip ${f === k ? "on" : ""}" data-act="selfF" data-v="${k}">${esc(l)}</button>`;
+    const card = (m) => {
+      const on = usedOn(m.id);
+      const name = `selfie-${m.id}.jpg`;
+      return `<figure class="selfie"><a href="${mediaUrl(m)}" target="_blank" rel="noopener"><img src="${mediaUrl(m)}" alt="" loading="lazy" /></a>
+        <figcaption><span class="tag ${on.length ? "" : "ok"}">${on.length ? esc(t("sf_usedN", { n: on.length })) : esc(t("sf_new"))}</span>${on.length ? `<small class="muted">${esc(on.map((p) => "@" + p).join(" "))}</small>` : ""}</figcaption>
+        <a class="btn sm" href="${mediaUrl(m)}" download="${esc(name)}">${t("s_dl")}</a>
+        ${alive.length ? `<div class="row selfmark"><select data-selfacc="${m.id}"><option value="">${esc(t("sf_pick"))}</option>${alive.filter((a) => !on.includes(a.pseudo)).map((a) => `<option value="${a.id}">@${esc(a.pseudo)}</option>`).join("")}</select><button class="btn sm light" data-act="selfMark" data-id="${m.id}">${t("sf_mark")}</button></div>` : ""}
+      </figure>`;
+    };
+    return `<h2>${t("sf_title")}</h2><p class="lead">${t("sf_lead")}</p>
+      <div class="alert">${t("sf_how")}</div>
+      <div class="chips" style="margin:10px 0">${chip("all", t("sf_all", { n: all.filter((m) => m.kind !== "pfp").length }))}${chip("new", t("sf_fNew"))}${chip("posts", t("sf_fPosts"))}${chip("commentaires", t("sf_fComments"))}</div>
+      ${list.length ? `<div class="selfies">${list.map(card).join("")}</div>` : `<div class="card"><p class="muted">${t("sf_none")}</p></div>`}`;
+  },
+
   guide() {
     const P = prog();
     const sec = (title, steps, extra = "", open = false) => `<details class="card sop" ${open ? "open" : ""}><summary><b>${esc(title)}</b></summary>${extra}<ol>${steps.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></details>`;
@@ -776,7 +806,7 @@ const LOGS = {
   compte_cree: "Compte ajouté", creation_ratee: "Ajout raté", action_faite: "Action faite", action_annulee: "Action annulée", statut_change: "Statut changé",
   numero_achete: "Numéro pris", code_recu: "Code reçu", numero_annule: "Numéro annulé", email_achete: "E-mail pris", email_annule: "E-mail annulé",
   compte_modifie: "Compte modifié", compte_supprime: "Compte supprimé", photo_ajoutee: "Photo ajoutée", reglages_modifies: "Réglages modifiés",
-  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock", stock_scam: "Compte scam", warmup_10min: "Warm-up 10 min fait",
+  secrets_modifies: "Connexions modifiées", import_hq: "Connexions récupérées", utilisateur_modifie: "Accès modifié", utilisateur_supprime: "Accès retiré", stock_importe: "Stock importé", stock_pris: "Compte pris du stock", stock_rendu: "Compte rendu au stock", stock_scam: "Compte scam", warmup_10min: "Warm-up 10 min fait", selfie_note: "Selfie posté noté",
 };
 function logDetails(l) {
   const out = [];
@@ -1018,6 +1048,19 @@ const ACT = {
       S.pass.seen.push(x);
     }
     render();
+  },
+  selfF(b) {
+    S.selfF = b.dataset.v;
+    render();
+  },
+  async selfMark(b) {
+    const sel = document.querySelector(`[data-selfacc="${b.dataset.id}"]`);
+    if (!sel || !sel.value) return toast(t("sf_pickFirst"), true);
+    await run(b, async () => {
+      await api(`accounts/${sel.value}/photo`, { mediaId: b.dataset.id });
+      await refresh();
+      toast(t("sf_marked"));
+    });
   },
   passOtherPhoto() {
     const a = accById(S.pass.id);

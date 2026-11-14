@@ -506,3 +506,13 @@ label.f { color: var(--ink); }
 .scambox p { margin: 0 0 8px; }
 .scamlist { white-space: pre-wrap; background: #fff7f8; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px; font-size: 13px; }
 .followbox { background: #fff7fb; } .followbox h3 { margin-top: 0; }
+
+/* Page Selfies (14 nov.) : galerie pour Emmy, sans ouvrir de compte */
+.selfies{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.selfie{margin:0;background:var(--card,#fff);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.selfie img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;display:block}
+.selfie figcaption{display:flex;flex-direction:column;gap:2px;font-size:12px;min-height:34px}
+.selfie small{word-break:break-all}
+.selfie .selfmark{display:flex;flex-direction:column;gap:4px;margin:0}
+.selfie .selfmark select{width:100%;font-size:13px;padding:6px}
+.selfie .selfmark .btn{width:100%}

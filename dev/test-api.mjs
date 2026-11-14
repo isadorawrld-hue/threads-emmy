@@ -139,5 +139,20 @@ ok(s.logs.some((l) => l.action === "stock_scam"), "journal : scam tracé");
 ok(s.stock.utilise === 4 && s.stock.dispo === 0, "stock : 4 utilisés");
 ok(s.logs.some((l) => l.action === "action_faite") && s.logs.some((l) => l.action === "statut_change"), "journal : actions et statuts tracés");
 
+// --- page Selfies : photo postée hors passage, notée sur le compte
+{
+  const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const m = (await call("media/upload", { group: "posts", dataUrl: png, filename: "selfie-test.png" }, adm)).j;
+  const acc = (await call("state", null, emmy)).j.accounts.find((a) => ["warmup", "actif"].includes(a.status));
+  r = await call(`accounts/${acc.id}/photo`, { mediaId: m.id }, emmy);
+  ok(r.s === 200 && (r.j.photos || []).includes(m.id), "selfie : Emmy note la photo sur le compte");
+  r = await call(`accounts/${acc.id}/photo`, { mediaId: m.id }, emmy);
+  ok(r.s === 200 && r.j.photos.filter((x) => x === m.id).length === 1, "selfie : pas de doublon");
+  r = await call(`accounts/${acc.id}/photo`, { mediaId: "inconnue" }, emmy);
+  ok(r.s === 400, "selfie : photo inconnue refusée");
+  s = (await call("state", null, adm)).j;
+  ok(s.logs.some((l) => l.action === "selfie_note"), "journal : selfie noté");
+}
+
 console.log(fails ? `\n${fails} ÉCHEC(S)` : "\nTOUT PASSE");
 process.exit(fails ? 1 : 0);
